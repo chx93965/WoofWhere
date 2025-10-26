@@ -1,0 +1,28 @@
+sequenceDiagram
+    participant Organizer
+    participant Frontend
+    participant APIGateway
+    participant PlaydateService
+    participant PostgreSQL
+    participant Redis
+    participant NotificationService
+    participant ChatService
+
+    Organizer->>Frontend: Edit playdate time
+    Frontend->>APIGateway: PUT /api/playdates/789
+    APIGateway->>PlaydateService: Verify organizer
+    PlaydateService->>PostgreSQL: SELECT organizer_id
+    PostgreSQL-->>PlaydateService: Match confirmed
+    PlaydateService->>PlaydateService: Validate changes
+    PlaydateService->>PostgreSQL: UPDATE playdates
+    PostgreSQL-->>PlaydateService: Success
+    PlaydateService->>Redis: PUBLISH PlaydateUpdated
+    Redis-->>PlaydateService: Published
+    Redis-->>NotificationService: Receive event
+    NotificationService->>PostgreSQL: Get participant emails
+    NotificationService->>NotificationService: Send update emails
+    Redis-->>ChatService: Receive event
+    ChatService->>ChatService: Check online participants
+    ChatService->>Frontend: WebSocket alert
+    PlaydateService-->>Frontend: Update confirmed
+    Frontend->>Organizer: Show Updated badge

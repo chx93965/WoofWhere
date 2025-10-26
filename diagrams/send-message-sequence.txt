@@ -1,0 +1,25 @@
+sequenceDiagram
+    participant UserA
+    participant FrontendA
+    participant ChatServiceA
+    participant PostgreSQL
+    participant Redis
+    participant ChatServiceB
+    participant FrontendB
+    participant UserB
+
+    UserA->>FrontendA: Type and send message
+    FrontendA->>ChatServiceA: socket.emit send_message
+    ChatServiceA->>ChatServiceA: Validate message and rate limit
+    ChatServiceA->>PostgreSQL: INSERT INTO messages
+    PostgreSQL-->>ChatServiceA: message_id 789
+    ChatServiceA->>Redis: SISMEMBER online_users 456
+    Redis-->>ChatServiceA: true online
+    ChatServiceA->>Redis: PUBLISH chat-messages
+    Redis-->>ChatServiceA: Published
+    Redis-->>ChatServiceB: Subscribe receives message
+    ChatServiceB->>ChatServiceB: Find socket for user:456
+    ChatServiceB->>FrontendB: socket.emit new_message
+    FrontendB->>UserB: Display message and notification
+    ChatServiceA->>FrontendA: emit message_sent
+    FrontendA->>UserA: Show checkmark

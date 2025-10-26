@@ -1,0 +1,33 @@
+sequenceDiagram
+    participant Organizer
+    participant Frontend
+    participant APIGateway
+    participant PlaydateService
+    participant PostgreSQL
+    participant Redis
+    participant NotificationService
+    participant ChatService
+
+    Organizer->>Frontend: Create playdate form
+    Frontend->>APIGateway: POST /api/playdates with JWT
+    APIGateway->>PlaydateService: Forward request
+    PlaydateService->>PlaydateService: Validate date and location
+    PlaydateService->>PostgreSQL: BEGIN TRANSACTION
+    PlaydateService->>PostgreSQL: INSERT INTO playdates
+    PostgreSQL-->>PlaydateService: playdate_id 789
+    PlaydateService->>PostgreSQL: INSERT participants batch
+    PostgreSQL-->>PlaydateService: Success
+    PlaydateService->>PostgreSQL: COMMIT
+    PostgreSQL-->>PlaydateService: Committed
+    PlaydateService->>Redis: PUBLISH playdate-events
+    Redis-->>PlaydateService: Published
+    Redis-->>NotificationService: PlaydateCreated event
+    NotificationService->>PostgreSQL: Query participant emails
+    PostgreSQL-->>NotificationService: Email list
+    NotificationService->>NotificationService: Send emails via SendGrid
+    Redis-->>ChatService: PlaydateCreated event
+    ChatService->>ChatService: Check online users
+    ChatService->>Frontend: WebSocket push notification
+    PlaydateService-->>APIGateway: Playdate created
+    APIGateway-->>Frontend: playdateId participants
+    Frontend->>Organizer: Show playdate card

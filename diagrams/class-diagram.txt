@@ -1,0 +1,242 @@
+classDiagram
+    %% Core Domain Models
+    class User {
+        +int id
+        +string username
+        +string email
+        +string passwordHash
+        +string role
+        +string profilePicUrl
+        +Point location
+        +DateTime createdAt
+        +DateTime lastLogin
+        +int failedLoginCount
+        +register()
+        +login()
+        +updateProfile()
+        +updateLocation()
+        +deleteAccount()
+    }
+
+    class Pet {
+        +int id
+        +int ownerId
+        +string name
+        +string breed
+        +int age
+        +string size
+        +string gender
+        +string profilePicUrl
+        +string intro
+        +boolean isActive
+        +DateTime deletedAt
+        +create()
+        +update()
+        +softDelete()
+        +findMatches()
+    }
+
+    class Playdate {
+        +int id
+        +int organizerId
+        +string title
+        +DateTime scheduledTime
+        +Point location
+        +string locationName
+        +string status
+        +DateTime cancelledAt
+        +create()
+        +update()
+        +cancel()
+        +addParticipant()
+        +removeParticipant()
+    }
+
+    class PlaydateParticipant {
+        +int id
+        +int playdateId
+        +int userId
+        +int petId
+        +string status
+        +DateTime joinedAt
+        +join()
+        +leave()
+    }
+
+    class Message {
+        +int id
+        +int senderId
+        +int recipientId
+        +string messageText
+        +boolean isRead
+        +DateTime createdAt
+        +send()
+        +markAsRead()
+    }
+
+    class UserSession {
+        +uuid id
+        +int userId
+        +string sessionToken
+        +DateTime createdAt
+        +DateTime expiresAt
+        +boolean isActive
+        +create()
+        +validate()
+        +invalidate()
+    }
+
+    %% Service Layer
+    class AuthService {
+        -PostgreSQL db
+        -Redis redis
+        +register(userData)
+        +login(credentials)
+        +logout(userId)
+        +validateToken(token)
+        +googleOAuth(idToken)
+        -hashPassword(password)
+        -generateJWT(userId, role)
+    }
+
+    class UserService {
+        -PostgreSQL db
+        -Redis cache
+        -Spaces storage
+        +getUserProfile(userId)
+        +updateProfile(userId, data)
+        +updateLocation(userId, lat, lng)
+        +uploadAvatar(userId, file)
+        +findNearbyUsers(lat, lng, radius)
+        +deleteUser(userId)
+        -invalidateCache(userId)
+    }
+
+    class PetService {
+        -PostgreSQL db
+        -Redis cache
+        -Spaces storage
+        +createPet(ownerId, petData)
+        +getPet(petId)
+        +updatePet(petId, data)
+        +deletePet(petId)
+        +findMatches(petId, radius)
+        +uploadPhoto(petId, file)
+        -calculateCompatibility(pet1, pet2)
+    }
+
+    class PlaydateService {
+        -PostgreSQL db
+        -Redis eventBus
+        +createPlaydate(organizerId, data)
+        +getPlaydate(playdateId)
+        +updatePlaydate(playdateId, data)
+        +cancelPlaydate(playdateId)
+        +joinPlaydate(playdateId, userId, petId)
+        +leavePlaydate(playdateId, userId)
+        +findNearbyPlaydates(lat, lng, radius)
+        -publishEvent(eventType, data)
+    }
+
+    class ChatService {
+        -PostgreSQL db
+        -Redis pubsub
+        -SocketIO io
+        +establishConnection(socket)
+        +sendMessage(senderId, recipientId, text)
+        +getMessageHistory(userId, otherUserId)
+        +handleTyping(userId, recipientId, isTyping)
+        -broadcastMessage(messageData)
+        -updateOnlineStatus(userId, isOnline)
+    }
+
+    class NotificationService {
+        -PostgreSQL db
+        -Redis subscriber
+        -EmailClient emailClient
+        +subscribeToEvents()
+        +sendPlaydateNotification(playdateData)
+        +sendEmailNotification(userId, subject, body)
+        -processEvent(event)
+        -getRecipientEmails(userIds)
+    }
+
+    %% Infrastructure Layer
+    class PostgreSQL {
+        +query(sql, params)
+        +transaction(callback)
+        +insert(table, data)
+        +update(table, data, where)
+        +delete(table, where)
+        +select(table, columns, where)
+    }
+
+    class Redis {
+        +get(key)
+        +set(key, value, ttl)
+        +del(key)
+        +publish(channel, message)
+        +subscribe(channel, callback)
+        +sadd(key, member)
+        +sismember(key, member)
+    }
+
+    class Spaces {
+        +upload(bucket, key, file)
+        +delete(bucket, key)
+        +getUrl(bucket, key)
+        -s3Client
+    }
+
+    class APIGateway {
+        -JWTValidator validator
+        -RateLimiter limiter
+        +route(request)
+        +validateToken(token)
+        +checkRateLimit(userId)
+        +authorize(userId, resource)
+    }
+
+    %% Relationships - Domain Models
+    User "1" --> "0..*" Pet : owns
+    User "1" --> "0..*" Playdate : organizes
+    User "1" --> "0..*" PlaydateParticipant : participatesIn
+    User "1" --> "0..*" Message : sends
+    User "1" --> "0..*" Message : receives
+    User "1" --> "0..*" UserSession : has
+    
+    Playdate "1" --> "0..*" PlaydateParticipant : has
+    Pet "1" --> "0..*" PlaydateParticipant : participatesIn
+
+    %% Relationships - Services to Domain
+    AuthService --> User : manages
+    AuthService --> UserSession : creates
+    UserService --> User : manages
+    PetService --> Pet : manages
+    PlaydateService --> Playdate : manages
+    PlaydateService --> PlaydateParticipant : manages
+    ChatService --> Message : manages
+    NotificationService --> User : notifies
+
+    %% Relationships - Services to Infrastructure
+    AuthService --> PostgreSQL : uses
+    AuthService --> Redis : uses
+    UserService --> PostgreSQL : uses
+    UserService --> Redis : uses
+    UserService --> Spaces : uses
+    PetService --> PostgreSQL : uses
+    PetService --> Redis : uses
+    PetService --> Spaces : uses
+    PlaydateService --> PostgreSQL : uses
+    PlaydateService --> Redis : uses
+    ChatService --> PostgreSQL : uses
+    ChatService --> Redis : uses
+    NotificationService --> PostgreSQL : uses
+    NotificationService --> Redis : uses
+
+    %% API Gateway relationships
+    APIGateway --> AuthService : routes
+    APIGateway --> UserService : routes
+    APIGateway --> PetService : routes
+    APIGateway --> PlaydateService : routes
+    APIGateway --> ChatService : routes

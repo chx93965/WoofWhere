@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant UserA
+    participant Frontend
+    participant LoadBalancer
+    participant ChatService
+    participant PostgreSQL
+    participant Redis
+
+    UserA->>Frontend: Click Message button
+    Frontend->>Frontend: Create WebSocket connection
+    Frontend->>LoadBalancer: WS with JWT
+    LoadBalancer->>LoadBalancer: Upgrade to WebSocket
+    LoadBalancer->>ChatService: Route to Chat Service
+    ChatService->>ChatService: Authenticate WebSocket
+    ChatService->>ChatService: jwt.verify token
+    ChatService->>ChatService: socket.join user:123
+    ChatService->>Redis: SADD online_users 123
+    Redis-->>ChatService: OK
+    ChatService->>Frontend: emit connected
+    ChatService->>PostgreSQL: Fetch message history
+    PostgreSQL-->>ChatService: Recent 50 messages
+    ChatService->>Frontend: emit message_history
+    Frontend->>UserA: Display chat interface

@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant APIGateway
+    participant PetService
+    participant PostgreSQL
+    participant Redis
+    participant Spaces
+
+    User->>Frontend: Fill pet form with photo
+    Frontend->>APIGateway: POST /api/pets with JWT
+    APIGateway->>APIGateway: Validate JWT extract owner_id
+    APIGateway->>PetService: Forward with owner_id
+    PetService->>PetService: Validate pet data
+    PetService->>PetService: Resize photo to 800x800
+    PetService->>Spaces: Upload pet photo
+    Spaces-->>PetService: Return CDN URL
+    PetService->>PostgreSQL: INSERT INTO pets
+    PostgreSQL-->>PetService: Return pet_id 456
+    PetService->>Redis: DEL user:123
+    Redis-->>PetService: OK
+    PetService->>Redis: PUBLISH pet-events PetCreated
+    Redis-->>PetService: Published
+    PetService-->>APIGateway: Pet created
+    APIGateway-->>Frontend: petId name breed
+    Frontend->>User: Navigate to pets/456

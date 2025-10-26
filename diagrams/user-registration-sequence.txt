@@ -1,0 +1,27 @@
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant APIGateway
+    participant UserService
+    participant AuthService
+    participant PostgreSQL
+    participant Redis
+
+    User->>Frontend: Fill registration form
+    Frontend->>APIGateway: POST /api/users
+    APIGateway->>UserService: Forward request no auth
+    UserService->>UserService: Validate input
+    UserService->>PostgreSQL: Check if user exists
+    PostgreSQL-->>UserService: User not found
+    UserService->>AuthService: Hash password and create credentials
+    AuthService->>AuthService: bcrypt.hash password 10 rounds
+    AuthService->>PostgreSQL: INSERT INTO users
+    PostgreSQL-->>AuthService: Return user_id 123
+    AuthService->>AuthService: Generate JWT token
+    AuthService->>Redis: SETEX session:123 604800 jwt
+    Redis-->>AuthService: OK
+    AuthService-->>UserService: Return userId and token
+    UserService-->>APIGateway: Success response
+    APIGateway-->>Frontend: userId token username
+    Frontend->>Frontend: localStorage.setItem token
+    Frontend->>User: Redirect to dashboard

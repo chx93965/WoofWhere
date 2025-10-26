@@ -1,0 +1,24 @@
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant APIGateway
+    participant UserService
+    participant PostgreSQL
+    participant Redis
+    participant Spaces
+
+    User->>Frontend: Edit profile and upload photo
+    Frontend->>APIGateway: PUT /api/users/123 with JWT
+    APIGateway->>APIGateway: Validate JWT and authorize
+    APIGateway->>UserService: Forward request
+    UserService->>Spaces: Upload profile picture
+    Spaces-->>UserService: Return CDN URL
+    UserService->>PostgreSQL: UPDATE users SET bio profile_pic
+    PostgreSQL-->>UserService: Success
+    UserService->>Redis: DEL user:123
+    Redis-->>UserService: OK
+    UserService->>Redis: PUBLISH user-events UserUpdated
+    Redis-->>UserService: Event published
+    UserService-->>APIGateway: Success
+    APIGateway-->>Frontend: Updated profile data
+    Frontend->>User: Show success message
