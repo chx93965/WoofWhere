@@ -783,62 +783,6 @@
 
 ---
 
-### 4.3 TYPING - Typing Indicator
-
-**WebSocket Event:** `typing`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - User starts typing (debounced 300ms):
-   ```javascript
-   socket.emit('typing', {
-     recipientId: 456,
-     isTyping: true
-   })
-   ```
-
-2. **Chat Service**
-   - Check recipient online:
-   ```
-   SISMEMBER online_users 456
-   ```
-
-3. **Redis**
-   - Store typing state temporarily:
-   ```
-   SETEX typing:123:456 3 "true"
-   ```
-   - Auto-expires after 3 seconds
-
-4. **Chat Service**
-   - Forward to recipient:
-   ```javascript
-   io.to('user:456').emit('user_typing', {
-     userId: 123,
-     isTyping: true
-   })
-   ```
-
-5. **Frontend (Recipient)**
-   - Display "John is typing..." below chat input
-   - Auto-hide after 3 seconds
-
-6. **Frontend (Sender)**
-   - User stops typing (no input for 3 seconds)
-   - Send stop typing event:
-   ```javascript
-   socket.emit('typing', {
-     recipientId: 456,
-     isTyping: false
-   })
-   ```
-
-7. **Frontend (Recipient)**
-   - Hide typing indicator
-
----
-
 ## Database Schema Reference
 
 ### Users Table
@@ -987,3 +931,13 @@ Channels:
 - `WS /ws/chat` - WebSocket connection
 - `GET /api/messages/:userId` - Get message history
 
+---
+
+![class-diagram](./diagrams/class-diagram.png "class-diagram")
+![user-registration-sequence](./diagrams/user-registration-sequence.png "user-registration-sequence")
+![user-update-sequence](./diagrams/user-update-sequence.png "user-update-sequence")
+![pet-create-sequence](./diagrams/pet-create-sequence.png "pet-create-sequence")
+![playdate-create-sequence](./diagrams/playdate-create-sequence.png "playdate-create-sequence")
+![playdate-update-sequence](./diagrams/playdate-update-sequence.png "playdate-update-sequence")
+![chat-session-sequence](./diagrams/chat-session-sequence.png "chat-session-sequence")
+![send-message-sequence](./diagrams/send-message-sequence.png "send-message-sequence")
