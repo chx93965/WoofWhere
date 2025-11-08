@@ -1,6 +1,6 @@
-# User Service
+# App Service
 
-Microservice for managing user data with PostgreSQL backend.
+Microservice for managing user, pet, and party data with PostgreSQL backend.
 
 ## Features
 
@@ -13,75 +13,178 @@ Microservice for managing user data with PostgreSQL backend.
 - Security headers (Helmet)
 - Graceful shutdown
 
-## API Endpoints
 
-### Health Check
+### Health Check (DEBUG level)
 ```
 GET /health
-Response: { status: 'ok', service: 'user-service', timestamp, uptime }
+Response: { status: 'ok', service: 'app-service', timestamp, uptime }
 ```
 
-### Users
-```
-GET    /api/users              - Get all users (paginated)
-GET    /api/users/stats        - Get user statistics
-GET    /api/users/:id          - Get user by ID
-POST   /api/users              - Create new user
-PUT    /api/users/:id          - Update user
-PATCH  /api/users/:id/deactivate - Deactivate user
-DELETE /api/users/:id          - Delete user
-```
 
-### Query Parameters (GET /api/users)
-- `page` - Page number (default: 1)
-- `limit` - Items per page (default: 10)
-- `search` - Search by name or email
-- `isActive` - Filter by active status (true/false)
+## Database Schema
 
-### Request/Response Examples
+### Tables
+
+#### user
+
+- id (UUID, PK)
+- name (VARCHAR 30)
+- email (VARCHAR 50, UNIQUE)
+- age (INTEGER)
+- isActive (BOOLEAN, default true)
+- createdAt, updatedAt
+
+#### pet
+
+- id (UUID, PK)
+- name (VARCHAR 30)
+- type (ENUM: 'dog', 'cat', 'other')
+- breed (VARCHAR 50)
+- age (INTEGER)
+- owner_id (UUID, FK → users.id, CASCADE)
+- createdAt, updatedAt
+
+#### party
+
+- id (UUID, PK)
+- title (VARCHAR 100)
+- location (VARCHAR 100)
+- date (DATE)
+- createdAt, updatedAt
+
+#### party_pets (Junction Table)
+
+- partyId (UUID, FK → parties.id, CASCADE)
+- petId (UUID, FK → pets.id, CASCADE)
+- createdAt, updatedAt
+- PRIMARY KEY (partyId, petId)
+
+### Relationships
+
+#### User → Pet (One-to-Many)
+
+- One user can have multiple pets
+- Delete user → cascade delete pets
+
+#### Pet ↔ Party (Many-to-Many)
+
+- Pets can attend multiple parties
+- Parties can have multiple pets
+- Junction table: party_pets
+
+## API Endpoints
+
+### User Endpoints
+
+```
+GET    /api/user                - Get all users (paginated)
+GET    /api/user/stats          - Get user statistics
+GET    /api/user/:id            - Get user by ID
+POST   /api/user                - Create new user
+PUT    /api/user/:id            - Update user
+DELETE /api/user/:id            - Delete user (cascade pets)
+PATCH  /api/user/:id/deactivate - Deactivate user
+PATCH  /api/user/:id/activate   - Reactivate user
+```
 
 **Create User:**
 ```json
-POST /api/users
+POST /api/user
 {
-  "name": "John Doe",
-  "email": "john@example.com",
-  "age": 30
-}
-
-Response: 201 Created
-{
-  "id": "uuid",
-  "name": "John Doe",
-  "email": "john@example.com",
-  "age": 30,
-  "isActive": true,
-  "createdAt": "2024-01-01T00:00:00.000Z",
-  "updatedAt": "2024-01-01T00:00:00.000Z"
+    "name": "John Doe",
+    "email": "john@example.com",
+    "age": 30
 }
 ```
 
-**Get Users (Paginated):**
+**Update User:**
 ```json
-GET /api/users?page=1&limit=10&search=john
-
-Response: 200 OK
+PUT /api/user/:id
 {
-  "users": [...],
-  "pagination": {
-    "total": 25,
-    "page": 1,
-    "limit": 10,
-    "pages": 3
-  }
+"name": "Jane Doe",
+"age": 31,
+"isActive": true
 }
 ```
+
+### Pet Endpoints
+
+```
+GET    /api/pet              - Get all pets (paginated)
+GET    /api/pet/:id          - Get pet by ID
+POST   /api/pet              - Create new pet
+PUT    /api/pet/:id          - Update pet
+DELETE /api/pet/:id          - Delete pet
+GET    /api/pet/:ownerId/get - Get pets by owner ID
+GET    /api/pet/:id/party    - Get pet's parties
+PATCH  /api/pet/:id/transfer - Transfer pet ownership
+```
+
+**Create Pet:**
+```json
+POST /api/pet
+{
+  "name": "Max",
+  "type": "dog",
+  "breed": "Golden Retriever",
+  "age": 3,
+  "owner_id": "user-uuid"
+}
+```
+
+**Update Pet:**
+```json
+PUT /api/pet/:id
+{
+  "type": "dog",
+  "age": 5
+}
+```
+
+***Transfer Ownership:**
+```json
+PATCH /api/pet/:id/transfer
+{
+  "newOwnerId": "new-user-uuid"
+}
+```
+
+### Party Endpoints
+```
+GET    /api/party                        - Get all party (paginated)
+GET    /api/party/:id                    - Get party by ID
+POST   /api/party                        - Create new party
+PUT    /api/party/:id                    - Update party
+DELETE /api/party/:id                    - Delete party
+PATCH  /api/party/:partyId/add/:petId    - Add pet to party
+PATCH  /api/party/:partyId/remove/:petId - Remove pet from party
+```
+
+**Create Party:** (must be future date)
+```json
+POST /api/party
+{
+  "title": "Weekend Party",
+  "location": "Central Park",
+  "date": "2025-12-25T10:00:00Z"
+}
+```
+
+**Update Party:** (must be future date)
+```json
+PUT /api/party/:id
+{
+  "location": "Downtown Club",
+  "date": "2025-12-31"
+}
+```
+
 
 ## Local Development
 
 ### Prerequisites
-- Node.js 18+
-- PostgreSQL 15+
+- Node.js 20+
+- PostgreSQL 18
 
 ### Setup
 
@@ -97,12 +200,7 @@ cp .env.example .env
 
 3. Update `.env` with your database credentials
 
-4. Create database and user in PostgreSQL:
-```sql
-CREATE DATABASE userdb;
-CREATE USER user_service WITH PASSWORD 'userpass123';
-GRANT ALL PRIVILEGES ON DATABASE userdb TO user_service;
-```
+4. Create database and user in PostgreSQL
 
 5. Run the service:
 ```bash
@@ -117,57 +215,41 @@ npm start
 
 ### Build
 ```bash
-docker build -t user-service:latest .
+docker compose build
 ```
 
 ### Run
 ```bash
-docker run -p 3001:3001 \
-  -e DB_HOST=postgres \
-  -e DB_NAME=userdb \
-  -e DB_USER=user_service \
-  -e DB_PASSWORD=userpass123 \
-  user-service:latest
+docker compose up -d
 ```
 
 ## Kubernetes Deployment
 
-See parent directory `k8s/deployments/user-service.yaml`
-
 ```bash
-kubectl apply -f k8s/deployments/app-service.yaml
-kubectl apply -f k8s/services/app-service.yaml
+# 1. Deploy PostgreSQL
+./scripts/deploy-database.sh
+
+# 2. Build and push images
+docker build -t your-registry/app:latest ./services/App
+docker push your-registry/app:latest
+
+docker build -t your-registry/frontend:latest ./frontend
+docker push your-registry/frontend:latest
+
+# 3. Deploy services
+kubectl apply -f k8s/deployments/
+kubectl apply -f k8s/services/
+kubectl apply -f k8s/ingress.yaml
+
+# 4. Check status
+kubectl get pods -n microservices
+kubectl get svc -n microservices
+
+# 5. Access application
+kubectl port-forward svc/frontend-service 8080:80 -n microservices
+# Open: http://localhost:8080
 ```
 
-## Database Schema
-
-```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(100) NOT NULL,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  age INTEGER CHECK (age >= 0 AND age <= 150),
-  "isActive" BOOLEAN DEFAULT true,
-  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_isActive ON users("isActive");
-CREATE INDEX idx_users_createdAt ON users("createdAt");
-```
-
-## Environment Variables
-
-| Variable | Description | Default     |
-|----------|-------------|-------------|
-| NODE_ENV | Environment | development |
-| PORT | Server port | 4001        |
-| DB_HOST | PostgreSQL host | localhost   |
-| DB_PORT | PostgreSQL port | 5432       |
-| DB_NAME | Database name | userdb      |
-| DB_USER | Database user | user        |
-| DB_PASSWORD | Database password | password    |
 
 ## Testing
 
@@ -179,24 +261,6 @@ npm test
 npm run test:coverage
 ```
 
-## Troubleshooting
-
-### Connection Issues
-```bash
-# Test database connection
-psql -h localhost -U user_service -d userdb
-
-# Check if service is running
-curl http://localhost:3001/health
-```
-
-### Permission Issues
-```sql
--- Reconnect as postgres and grant permissions
-GRANT ALL PRIVILEGES ON SCHEMA public TO user_service;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO user_service;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO user_service;
-```
 
 ## License
 

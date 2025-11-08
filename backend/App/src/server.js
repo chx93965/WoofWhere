@@ -34,18 +34,21 @@ app.use((req, res, next) => {
 
 // Health check
 app.get('/health', (req, res) => {
+    if (process.env.LOG_LEVEL !== 'debug') {
+        return res.status(200).end();
+    }
     res.json({
         status: 'ok',
-        service: 'user-service',
+        service: 'app-service',
         timestamp: new Date().toISOString(),
         uptime: process.uptime()
     });
 });
 
 // Routes
-app.use('/api/users', userRoutes);
-app.use('/api/pets', petRoutes);
-app.use('/api/parties', partyRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/pet', petRoutes);
+app.use('/api/party', partyRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -73,12 +76,12 @@ const startServer = async () => {
         console.log('App models synchronized with database');
 
         app.listen(PORT, '0.0.0.0', () => {
-            console.log(`User service running on port ${PORT}`);
+            console.log(`App service running on port ${PORT}`);
             console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
             console.log(`Database: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
         });
     } catch (error) {
-        console.error('Unable to start user service:', error);
+        console.error('Unable to start app service:', error);
         process.exit(1);
     }
 };

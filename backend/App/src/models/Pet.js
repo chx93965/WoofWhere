@@ -34,11 +34,11 @@ const Pet = sequelize.define('Pet', {
         comment: 'Type of the pet (dog, cat, other)'
     },
     breed: {
-        type: DataTypes.STRING(20),
+        type: DataTypes.STRING(50),
         allowNull: true,
         validate: {
             len: {
-                args: [2, 20],
+                args: [2, 50],
                 msg: 'Type must be between 2 and 20 characters'
             }
         },

@@ -84,7 +84,7 @@ exports.getUserById = async (req, res) => {
 
         const user = await User.findByPk(id, { include });
         if (!user) {
-            return res.status(404).json({ error: 'App not found' });
+            return res.status(404).json({ error: 'User not found' });
         }
 
         res.json(user);
@@ -130,7 +130,7 @@ exports.updateUser = async (req, res) => {
 
         const user = await User.findByPk(id);
         if (!user) {
-            return res.status(404).json({ error: 'App not found' });
+            return res.status(404).json({ error: 'User not found' });
         }
 
         // Update only provided fields
@@ -166,14 +166,14 @@ exports.deleteUser = async (req, res) => {
         const user = await User.findByPk(id, { transaction });
         if (!user) {
             await transaction.rollback();
-            return res.status(404).json({ error: 'App not found' });
+            return res.status(404).json({ error: 'User not found' });
         }
 
         await user.destroy({ transaction });
         await transaction.commit();
 
         res.json({
-            message: 'App deleted',
+            message: 'User deleted',
             id
         });
     } catch (error) {
@@ -189,14 +189,14 @@ exports.deactivateUser = async (req, res) => {
         const { id } = req.params;
         const user = await User.findByPk(id);
         if (!user) {
-            return res.status(404).json({ error: 'App not found' });
+            return res.status(404).json({ error: 'User not found' });
         }
 
         user.isActive = false;
         await user.save();
 
         res.json({
-            message: 'App deactivated',
+            message: 'User deactivated',
             user
         });
     } catch (error) {
@@ -211,17 +211,17 @@ exports.activateUser = async (req, res) => {
         const { id } = req.params;
         const user = await User.findByPk(id);
         if (!user) {
-            return res.status(404).json({ error: 'App not found' });
+            return res.status(404).json({ error: 'User not found' });
         }
         if (user.isActive) {
-            return res.status(400).json({ error: 'App is already active' });
+            return res.status(400).json({ error: 'User is already active' });
         }
 
         user.isActive = true;
         await user.save();
 
         res.json({
-            message: 'App activated',
+            message: 'User activated',
             user
         });
     } catch (error) {
@@ -237,28 +237,11 @@ exports.getUserStats = async (req, res) => {
         const active = await User.count({ where: { isActive: true } });
         const inactive = total - active;
 
-        const usersWithPetCounts = await User.findAll({
-            attributes: ['id', 'name', 'email',
-                [sequelize.fn('COUNT', sequelize.col('pets.id')), 'petCount']
-            ],
-            include: [{
-                model: Pet,
-                as: 'pets',
-                attributes: [],
-                required: false
-            }],
-            group: ['App.id'],
-            order: [[sequelize.literal('petCount'), 'DESC']],
-            limit: 5,
-            raw: true
-        });
-
         res.json({
             total,
             active,
             inactive,
             activePercentage: total > 0 ? ((active / total) * 100).toFixed(2) : 0,
-            topPetOwners: usersWithPetCounts
         });
     } catch (error) {
         console.error('Error fetching user stats:', error);
