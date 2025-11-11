@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  web:
+    build:
+      context: .
+      args:
+        VITE_AUTH0_DOMAIN: ${VITE_AUTH0_DOMAIN}
+        VITE_AUTH0_CLIENT_ID: ${VITE_AUTH0_CLIENT_ID}
+        VITE_AUTH0_REDIRECT_URI: ${VITE_AUTH0_REDIRECT_URI}
+        VITE_MAPBOX_ACCESS_TOKEN: ${VITE_MAPBOX_ACCESS_TOKEN}
+    ports:
+      - "8080:80"
+    environment:
+      - NODE_ENV=production
