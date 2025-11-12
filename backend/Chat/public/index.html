@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Two-User Edge Chat (Stateless)</title>
+    <style>
+      body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+      .row { margin-bottom: 12px; }
+      #log { border: 1px solid #ccc; height: 240px; overflow: auto; padding: 8px; }
+      input, button { padding: 8px; }
+      .me { font-weight: 600; }
+      .sys { color: #666; font-style: italic; }
+    </style>
+  </head>
+  <body>
+    <h1>Two-User Edge Chat</h1>
+    <div class="row">
+      <label>Server (wss/http): </label>
+      <input id="server" size="50" value="" placeholder="e.g., wss://your-app.fly.dev" />
+    </div>
+    <div class="row">
+      <label>Conversation ID: </label>
+      <input id="conv" value="demo-123" />
+      <label style="margin-left:8px;">Your User ID: </label>
+      <input id="user" value="alice" />
+      <button id="connect">Connect</button>
+      <button id="disconnect">Disconnect</button>
+    </div>
+    <div id="status" class="row"></div>
+    <div id="log"></div>
+    <div class="row" style="margin-top: 8px;">
+      <input id="text" placeholder="Type message…" size="50"/>
+      <button id="send">Send</button>
+    </div>
+    <script>
+      const status = document.getElementById("status");
+      const log = document.getElementById("log");
+      const server = document.getElementById("server");
+      const conv = document.getElementById("conv");
+      const user = document.getElementById("user");
+      const connectBtn = document.getElementById("connect");
+      const disconnectBtn = document.getElementById("disconnect");
+      const text = document.getElementById("text");
+      const sendBtn = document.getElementById("send");
+
+      // Populate default server from current host for local runs.
+      server.value = server.value || (location.protocol.replace("http", "ws") + "//" + location.host);
+
+      let ws;
+
+      function addLine(html) {
+        const div = document.createElement("div");
+        div.innerHTML = html;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      connectBtn.onclick = () => {
+        const url = new URL(server.value);
+        url.searchParams.set("conv", conv.value);
+        url.searchParams.set("user", user.value);
+        if (url.protocol !== "ws:" && url.protocol !== "wss:") {
+          url.protocol = url.protocol === "http:" ? "ws:" : "wss:";
+        }
+        ws = new WebSocket(url.toString());
+        status.textContent = "Connecting…";
+        ws.onopen = () => { status.textContent = "Connected."; };
+        ws.onclose = () => { status.textContent = "Disconnected."; };
+        ws.onmessage = (ev) => {
+          try {
+            const msg = JSON.parse(ev.data);
+            if (msg.type === "presence") {
+              addLine(`<span class="sys">* ${msg.user} ${msg.event}ed</span>`);
+            } else if (msg.type === "message") {
+              const me = msg.user === user.value ? "me" : "";
+              addLine(`<span class="${me}">${msg.user}</span>: ${msg.text} <small>(${msg.ts})</small>`);
+            } else {
+              addLine(ev.data);
+            }
+          } catch {
+            addLine(ev.data);
+          }
+        };
+      };
+
+      disconnectBtn.onclick = () => {
+        if (ws) ws.close();
+      };
+
+      sendBtn.onclick = () => {
+        if (!ws || ws.readyState !== 1) return alert("Not connected");
+        const payload = { type: "message", text: text.value };
+        ws.send(JSON.stringify(payload));
+        text.value = "";
+      };
+
+      text.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendBtn.click();
+      });
+    </script>
+  </body>
+</html>
