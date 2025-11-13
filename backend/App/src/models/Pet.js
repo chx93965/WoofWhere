@@ -22,17 +22,6 @@ const Pet = sequelize.define('Pet', {
         },
         comment: 'Name of the pet'
     },
-    type: {
-        type: DataTypes.ENUM('dog', 'cat', 'other'),
-        allowNull: false,
-        validate: {
-            isIn: {
-                args: [['dog', 'cat', 'other']],
-                msg: 'Type must be one of: dog, cat, other'
-            }
-        },
-        comment: 'Type of the pet (dog, cat, other)'
-    },
     breed: {
         type: DataTypes.STRING(50),
         allowNull: true,
@@ -43,6 +32,17 @@ const Pet = sequelize.define('Pet', {
             }
         },
         comment: 'Breed of the pet'
+    },
+    size: {
+        type: DataTypes.ENUM('small', 'medium', 'large'),
+        allowNull: true,
+        validate: {
+            isIn: {
+                args: [['small', 'medium', 'large']],
+                msg: 'Size must be one of: small, medium, large'
+            }
+        },
+        comment: 'Size of the pet (small, medium, large)'
     },
     age: {
         type: DataTypes.INTEGER,

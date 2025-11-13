@@ -32,7 +32,7 @@ exports.getAllUsers = async (req, res) => {
             include.push({
                 model: Pet,
                 as: 'pets',
-                attributes: ['id', 'name', 'type']
+                attributes: ['id', 'name']
             });
         }
 
@@ -70,7 +70,7 @@ exports.getUserById = async (req, res) => {
             const petInclude = {
                 model: Pet,
                 as: 'pets',
-                attributes: ['id', 'name', 'type']
+                attributes: ['id', 'name']
             };
             if (includeParty === 'true') {
                 petInclude.include = [{

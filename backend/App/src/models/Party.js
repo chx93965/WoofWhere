@@ -45,6 +45,17 @@ const Party = sequelize.define('Party', {
             }
         },
         comment: 'Date of the party'
+    },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        validate: {
+            len: {
+                args: [0, 500],
+                msg: 'Description can be up to 500 characters'
+            }
+        },
+        comment: 'Description of the party'
     }
 }, {
     tableName: 'party',

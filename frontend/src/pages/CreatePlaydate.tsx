@@ -37,9 +37,21 @@ export default function CreatePlaydate() {
     
     playdates.push(newPlaydate);
     localStorage.setItem('playdates', JSON.stringify(playdates));
-    
+
+    const payload = new FormData();
+    payload.append('title', formData.title);
+    payload.append('location', formData.location);
+    const combinedDateTime = new Date(`${formData.date}T${formData.time}`);
+    payload.append('dateTime', combinedDateTime.toISOString());
+    payload.append('description', formData.description);
+
+    // TODO: Get user id
+    // TODO: Get user's pets' ids
+    // TODO: Post playdate
+    // TODO: Add pets to playdate
+
     toast({
-      title: 'Playdate Created! 🎉',
+      title: 'Playdate Created!',
       description: 'Your playdate has been scheduled successfully.',
     });
     
