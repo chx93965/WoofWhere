@@ -29,7 +29,7 @@ exports.getAllParties = async (req, res) => {
             const petInclude = {
                 model: Pet,
                 as: 'pets',
-                attributes: ['id', 'name', 'type'],
+                attributes: ['id', 'name'],
                 through: { attributes: [] } // exclude join table attributes
             };
             if (includeOwners === 'true') {
@@ -76,7 +76,7 @@ exports.getPartyById = async (req, res) => {
             const petInclude = {
                 model: Pet,
                 as: 'pets',
-                attributes: ['id', 'name', 'type'],
+                attributes: ['id', 'name'],
                 through: { attributes: [] } // exclude join table attributes
             };
             if (includeOwners === 'true') {

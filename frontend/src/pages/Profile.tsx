@@ -12,6 +12,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 interface Profile {
   name: string;
   email: string;
+  age: number;
 }
 
 interface Pet {
@@ -19,7 +20,6 @@ interface Pet {
   breed: string;
   age: number;
   size: 'small' | 'medium' | 'large';
-  temperament: string;
 }
 
 export default function Profile() {
@@ -29,13 +29,13 @@ export default function Profile() {
   const [userForm, setUserForm] = useState<Profile>({
     name: '',
     email: '',
+    age: 0,
   });
   const [petForm, setPetForm] = useState<Pet>({
     name: '',
     breed: '',
     age: 0,
     size: 'medium',
-    temperament: '',
   });
 
   useEffect(() => {
@@ -59,6 +59,9 @@ export default function Profile() {
   const handleUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem('profile', JSON.stringify(userForm));
+
+    // TODO: Post user
+
     toast({
       title: 'Profile Updated',
       description: 'Your profile has been saved successfully.',
@@ -68,6 +71,10 @@ export default function Profile() {
   const handlePetSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem('pet', JSON.stringify(petForm));
+
+    // TODO: Get user id
+    // TODO: Post pet
+
     toast({
       title: 'Pet Profile Updated',
       description: `${petForm.name}'s profile has been saved successfully.`,
@@ -195,16 +202,6 @@ export default function Profile() {
                             </SelectContent>
                           </Select>
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="temperament">Temperament</Label>
-                        <Input
-                          id="temperament"
-                          placeholder="Friendly, energetic, calm..."
-                          value={petForm.temperament}
-                          onChange={(e) => setPetForm({ ...petForm, temperament: e.target.value })}
-                          required
-                        />
                       </div>
                       <Button type="submit">Save Pet Profile</Button>
                     </form>
