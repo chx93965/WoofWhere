@@ -5,6 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Plus, Users } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+
 
 interface Playdate {
   id: string;
@@ -19,6 +29,10 @@ interface Playdate {
 
 export default function Dashboard() {
   const [playdates, setPlaydates] = useState<Playdate[]>([]);
+  const [selectedPlaydate, setSelectedPlaydate] = useState<Playdate | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const { toast } = useToast();
+
 
   useEffect(() => {
     const stored = localStorage.getItem('playdates');
@@ -146,12 +160,70 @@ export default function Dashboard() {
                       {playdate.location}
                     </div>
                   </div>
-                  <Button className="w-full mt-4">Join Playdate</Button>
+                  <Button className="w-full mt-4" onClick={() => {
+    setSelectedPlaydate(playdate);
+    setShowDialog(true);
+  }}>Join Playdate</Button>
                 </CardContent>
               </Card>
             ))}
           </div>
         </div>
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>
+        {selectedPlaydate?.title}
+      </DialogTitle>
+      <DialogDescription>
+        Review details before confirming your booking.
+      </DialogDescription>
+    </DialogHeader>
+
+    {selectedPlaydate && (
+      <div className="space-y-3">
+        <p><strong>Description:</strong> {selectedPlaydate.description}</p>
+        <p><strong>Host:</strong> {selectedPlaydate.hostName}</p>
+        <p><strong>Date:</strong> {new Date(selectedPlaydate.date).toLocaleDateString()}</p>
+        <p><strong>Time:</strong> {selectedPlaydate.time}</p>
+        <p><strong>Location:</strong> {selectedPlaydate.location}</p>
+        <p><strong>Attendees:</strong> {selectedPlaydate.attendees}</p>
+      </div>
+    )}
+
+    <DialogFooter>
+      <Button
+        variant="outline"
+        onClick={() => setShowDialog(false)}
+      >
+        Cancel
+      </Button>
+      <Button
+  onClick={() => {
+    if (!selectedPlaydate) return;
+    const updated = playdates.map((p) =>
+      p.id === selectedPlaydate.id
+        ? { ...p, attendees: p.attendees + 1 }
+        : p
+    );
+
+    setPlaydates(updated);
+    localStorage.setItem("playdates", JSON.stringify(updated));
+
+    setShowDialog(false);
+    toast({
+      title: "Successfully booked! 🎉",
+      description: `You're now attending "${selectedPlaydate.title}"🥳.`,
+    });
+  }}
+>
+  Confirm Booking
+</Button>
+
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
       </main>
     </div>
   );
