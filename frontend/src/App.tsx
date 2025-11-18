@@ -7,9 +7,9 @@ import Dashboard from "./pages/Dashboard";
 import CreatePlaydate from "./pages/CreatePlaydate";
 import Profile from "./pages/Profile";
 import Map from "./pages/Map";
-import Login from "./pages/Login.tsx";
-import Signup from "./pages/Signup.tsx";
 import NotFound from "./pages/NotFound";
+import ChatRoom from "./pages/ChatRoom";
+import { SocketProvider } from "@/lib/socket";
 
 const queryClient = new QueryClient();
 
@@ -18,19 +18,20 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <SocketProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/create-playdate" element={<CreatePlaydate />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/map" element={<Map />} />
-          <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
           <Route path="*" element={<NotFound />} />
+          <Route path="/chat" element={<ChatRoom />} />
         </Routes>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+    </SocketProvider>
+  </TooltipProvider>
+</QueryClientProvider>
 );
 
 export default App;
