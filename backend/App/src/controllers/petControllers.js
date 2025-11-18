@@ -118,7 +118,7 @@ exports.createPet = async (req, res) => {
         console.error('Error creating pet:', error);
         if (error.name === 'SequelizeForeignKeyConstraintError') {
             return res.status(400).json({
-                error: 'Invalid ownerId: App does not exist'
+                error: 'Invalid ownerId: User does not exist'
             });
         }
         if (error.name === 'SequelizeValidationError') {

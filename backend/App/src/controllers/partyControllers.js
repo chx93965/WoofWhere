@@ -105,7 +105,7 @@ exports.getPartyById = async (req, res) => {
 // Create new party
 exports.createParty = async (req, res) => {
     try {
-        const { title, location, date } = req.body;
+        const { title, location, date, description } = req.body;
         if (!title || !location || !date) {
             return res.status(400).json({ error: "Title, location, and date are required." });
         }
@@ -113,7 +113,7 @@ exports.createParty = async (req, res) => {
             return res.status(400).json({ error: "Date must be in the future." });
         }
 
-        const newParty = await Party.create({ title, location, date });
+        const newParty = await Party.create({ title, location, date, description });
         res.status(201).json(newParty);
     } catch (error) {
         console.error("Error creating party:", error);
@@ -125,7 +125,7 @@ exports.createParty = async (req, res) => {
 exports.updateParty = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, location, date } = req.body;
+        const { title, location, date, description } = req.body;
 
         const party = await Party.findByPk(id);
         if (!party) {
@@ -139,6 +139,7 @@ exports.updateParty = async (req, res) => {
         if (title !== undefined) party.title = title;
         if (location !== undefined) party.location = location;
         if (date !== undefined) party.date = date;
+        if (description !== undefined) party.description = description;
 
         await party.save();
         res.json(party);

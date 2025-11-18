@@ -7,6 +7,8 @@ import Dashboard from "./pages/Dashboard";
 import CreatePlaydate from "./pages/CreatePlaydate";
 import Profile from "./pages/Profile";
 import Map from "./pages/Map";
+import Login from "./pages/Login.tsx";
+import Signup from "./pages/Signup.tsx";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +24,8 @@ const App = () => (
           <Route path="/create-playdate" element={<CreatePlaydate />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/map" element={<Map />} />
+          <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

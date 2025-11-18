@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Plus, Users } from 'lucide-react';
+import { partyApi } from '@/api/partyApi';
 import {
   Dialog,
   DialogContent,
@@ -35,35 +36,52 @@ export default function Dashboard() {
 
 
   useEffect(() => {
-    const stored = localStorage.getItem('playdates');
-    if (stored) {
-      setPlaydates(JSON.parse(stored));
-    } else {
-      const mockPlaydates: Playdate[] = [
-        {
-          id: '1',
-          title: 'Morning Park Run',
-          location: 'Central Park',
-          date: '2025-11-15',
-          time: '09:00',
-          attendees: 5,
-          description: 'Energetic morning run for active dogs',
-          hostName: 'Sarah',
-        },
-        {
-          id: '2',
-          title: 'Small Breed Social',
-          location: 'Riverside Dog Park',
-          date: '2025-11-16',
-          time: '15:00',
-          attendees: 3,
-          description: 'Perfect for small breeds to socialize',
-          hostName: 'Mike',
-        },
-      ];
-      setPlaydates(mockPlaydates);
-      localStorage.setItem('playdates', JSON.stringify(mockPlaydates));
-    }
+    // const stored = localStorage.getItem('playdates');
+    // if (stored) {
+    //   setPlaydates(JSON.parse(stored));
+    // } else {
+    //   const mockPlaydates: Playdate[] = [
+    //     {
+    //       id: '1',
+    //       title: 'Morning Park Run',
+    //       location: 'Central Park',
+    //       date: '2025-11-15',
+    //       time: '09:00',
+    //       attendees: 5,
+    //       description: 'Energetic morning run for active dogs',
+    //       hostName: 'Sarah',
+    //     },
+    //     {
+    //       id: '2',
+    //       title: 'Small Breed Social',
+    //       location: 'Riverside Dog Park',
+    //       date: '2025-11-16',
+    //       time: '15:00',
+    //       attendees: 3,
+    //       description: 'Perfect for small breeds to socialize',
+    //       hostName: 'Mike',
+    //     },
+    //   ];
+    //   setPlaydates(mockPlaydates);
+    //   localStorage.setItem('playdates', JSON.stringify(mockPlaydates));
+    // }
+    const loadPlaydates = async () => {
+      const partyData = await partyApi.getAll();
+      const formattedPlaydates = partyData.parties.map((p: any) => {
+        const dateObj = new Date(p.date);
+        return {
+            id: p.id,
+            title: p.title,
+            location: p.location,
+            date: dateObj.toISOString().split('T')[0],
+            time: dateObj.toISOString().split('T')[1].substring(0,5),
+            attendees: p.pets?.length ?? 0,
+            description: p.description ?? "No description provided",
+          };
+      });
+      setPlaydates(formattedPlaydates);
+    };
+    loadPlaydates();
   }, []);
 
   return (
