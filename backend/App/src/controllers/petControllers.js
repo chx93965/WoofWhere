@@ -9,7 +9,6 @@ exports.getAllPets = async (req, res) => {
             page = 1,
             limit = 10,
             search,
-            type,
             ownerId,
             includeOwner = 'false',
             includeParties = 'false',
@@ -22,9 +21,6 @@ exports.getAllPets = async (req, res) => {
         if (search) {
             // case-insensitive, partial match
             where.name = { [Op.iLike]: `%${search}%` };
-        }
-        if (type) {
-            where.type = type;
         }
         if (ownerId) {
             where.ownerId = ownerId;
@@ -108,21 +104,21 @@ exports.getPetById = async (req, res) => {
 // Create new pet with owner association
 exports.createPet = async (req, res) => {
     try {
-        const { name, type, breed, age, ownerId } = req.body;
+        const { name, breed, size, age, ownerId } = req.body;
 
-        if (!name || !type || !ownerId) {
+        if (!name || !ownerId) {
             return res.status(400).json({
-                error: 'Name, type, and ownerId are required'
+                error: 'Name, and ownerId are required'
             });
         }
 
-        const pet = await Pet.create({ name, type, breed, age, ownerId });
+        const pet = await Pet.create({ name, breed, size, age, ownerId });
         res.status(201).json(pet);
     } catch (error) {
         console.error('Error creating pet:', error);
         if (error.name === 'SequelizeForeignKeyConstraintError') {
             return res.status(400).json({
-                error: 'Invalid ownerId: App does not exist'
+                error: 'Invalid ownerId: User does not exist'
             });
         }
         if (error.name === 'SequelizeValidationError') {
@@ -138,7 +134,7 @@ exports.createPet = async (req, res) => {
 exports.updatePet = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, type, breed, age } = req.body;
+        const { name, breed, size, age } = req.body;
 
         const pet = await Pet.findByPk(id);
         if (!pet) {
@@ -147,8 +143,8 @@ exports.updatePet = async (req, res) => {
 
         // Update only provided fields
         if (name !== undefined) pet.name = name;
-        if (type !== undefined) pet.type = type;
         if (breed !== undefined) pet.breed = breed;
+        if (size !== undefined) pet.size = size;
         if (age !== undefined) pet.age = age;
 
         await pet.save();

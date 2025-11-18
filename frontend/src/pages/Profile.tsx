@@ -8,34 +8,39 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth0 } from '@auth0/auth0-react';
+import { userApi } from '@/api/userApi';
+import { petApi } from '@/api/petApi';
 
 interface Profile {
+  id: string;
   name: string;
   email: string;
+  age: number;
 }
 
 interface Pet {
+  id: string;
   name: string;
   breed: string;
   age: number;
   size: 'small' | 'medium' | 'large';
-  temperament: string;
 }
 
 export default function Profile() {
   const { toast } = useToast();
-  const { user, isAuthenticated, loginWithRedirect, logout, isLoading } = useAuth0();
+  let { user, isAuthenticated, loginWithRedirect, logout, isLoading } = useAuth0();
+  // isAuthenticated = true;
 
   const [userForm, setUserForm] = useState<Profile>({
     name: '',
     email: '',
+    age: 0,
   });
   const [petForm, setPetForm] = useState<Pet>({
     name: '',
     breed: '',
     age: 0,
     size: 'medium',
-    temperament: '',
   });
 
   useEffect(() => {
@@ -56,22 +61,57 @@ export default function Profile() {
     }
   }, [isAuthenticated, user]);
 
-  const handleUserSubmit = (e: React.FormEvent) => {
+  const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('profile', JSON.stringify(userForm));
-    toast({
-      title: 'Profile Updated',
-      description: 'Your profile has been saved successfully.',
-    });
+
+    // TODO: Post user
+    try {
+      console.log("Creating user with data:", userForm);
+      const response = await userApi.create({
+        name: userForm.name,
+        email: userForm.email,
+        age: userForm.age,
+      });
+      const userId = response.id;
+      localStorage.setItem('profile', JSON.stringify({...userForm, id: userId}));
+
+      console.log('User created with ID:', userId);
+      toast({
+        title: 'Profile Updated',
+        description: `Your profile has been saved successfully.`,
+      });
+    } catch (error) {
+      console.error('Error creating user:', error);
+    }
   };
 
-  const handlePetSubmit = (e: React.FormEvent) => {
+  const handlePetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem('pet', JSON.stringify(petForm));
-    toast({
-      title: 'Pet Profile Updated',
-      description: `${petForm.name}'s profile has been saved successfully.`,
-    });
+
+    // Get user id
+    // Post pet
+    try {
+      const profile = localStorage.getItem('profile');
+      if (!profile) throw new Error('User profile not found');
+      const {id: userId} = JSON.parse(profile);
+
+      const response = await petApi.create({
+        name: petForm.name,
+        breed: petForm.breed,
+        size: petForm.size,
+        age: petForm.age,
+        ownerId: userId
+      });
+
+      console.log('Pet added with ID:', response.id);
+      toast({
+        title: 'Pet Profile Updated',
+        description: `${petForm.name}'s profile has been saved successfully.`,
+      });
+    } catch (error) {
+      console.error('Error adding pet:', error);
+    }
   };
 
   return (
@@ -128,6 +168,17 @@ export default function Profile() {
                           required
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="age">Age</Label>
+                        <Input
+                            id="age"
+                            type="number"
+                            min="0"
+                            max="150"
+                            value={userForm.age}
+                            onChange={(e) => setUserForm({ ...userForm, age: parseInt(e.target.value) })}
+                        />
+                      </div>
                       <Button type="submit">Save Changes</Button>
                       <Button
                         variant="secondary"
@@ -171,12 +222,12 @@ export default function Profile() {
                         <div className="space-y-2">
                           <Label htmlFor="age">Age (years)</Label>
                           <Input
-                            id="age"
-                            type="number"
-                            min="0"
-                            value={petForm.age}
-                            onChange={(e) => setPetForm({ ...petForm, age: parseInt(e.target.value) })}
-                            required
+                              id="age"
+                              type="number"
+                              min="0"
+                              max="50"
+                              value={petForm.age}
+                              onChange={(e) => setPetForm({ ...petForm, age: parseInt(e.target.value) })}
                           />
                         </div>
                         <div className="space-y-2">
@@ -195,16 +246,6 @@ export default function Profile() {
                             </SelectContent>
                           </Select>
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="temperament">Temperament</Label>
-                        <Input
-                          id="temperament"
-                          placeholder="Friendly, energetic, calm..."
-                          value={petForm.temperament}
-                          onChange={(e) => setPetForm({ ...petForm, temperament: e.target.value })}
-                          required
-                        />
                       </div>
                       <Button type="submit">Save Pet Profile</Button>
                     </form>

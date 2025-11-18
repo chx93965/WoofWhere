@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Plus, Users } from 'lucide-react';
+import { userApi } from '@/api/userApi';
+import { partyApi } from '@/api/partyApi';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +18,14 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  age: number;
+  isActive: boolean;
+}
+
 interface Playdate {
   id: string;
   title: string;
@@ -24,7 +34,6 @@ interface Playdate {
   time: string;
   attendees: number;
   description: string;
-  hostName: string;
 }
 
 export default function Dashboard() {
@@ -33,37 +42,72 @@ export default function Dashboard() {
   const [showDialog, setShowDialog] = useState(false);
   const { toast } = useToast();
 
+  const [users, setUsers] = useState<Users[]>([]);
 
   useEffect(() => {
-    const stored = localStorage.getItem('playdates');
-    if (stored) {
-      setPlaydates(JSON.parse(stored));
-    } else {
-      const mockPlaydates: Playdate[] = [
-        {
-          id: '1',
-          title: 'Morning Park Run',
-          location: 'Central Park',
-          date: '2025-11-15',
-          time: '09:00',
-          attendees: 5,
-          description: 'Energetic morning run for active dogs',
-          hostName: 'Sarah',
-        },
-        {
-          id: '2',
-          title: 'Small Breed Social',
-          location: 'Riverside Dog Park',
-          date: '2025-11-16',
-          time: '15:00',
-          attendees: 3,
-          description: 'Perfect for small breeds to socialize',
-          hostName: 'Mike',
-        },
-      ];
-      setPlaydates(mockPlaydates);
-      localStorage.setItem('playdates', JSON.stringify(mockPlaydates));
-    }
+    const loadUsers = async () => {
+      const userData = await userApi.getAll();
+      const formattedUsers = userData.users.map((u: any) => {
+        return {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          age: u.age,
+          isActive: u.isActive,
+        };
+      });
+      setUsers(formattedUsers);
+    };
+    loadUsers();
+  }, []);
+
+  useEffect(() => {
+    // const stored = localStorage.getItem('playdates');
+    // if (stored) {
+    //   setPlaydates(JSON.parse(stored));
+    // } else {
+    //   const mockPlaydates: Playdate[] = [
+    //     {
+    //       id: '1',
+    //       title: 'Morning Park Run',
+    //       location: 'Central Park',
+    //       date: '2025-11-15',
+    //       time: '09:00',
+    //       attendees: 5,
+    //       description: 'Energetic morning run for active dogs',
+    //       hostName: 'Sarah',
+    //     },
+    //     {
+    //       id: '2',
+    //       title: 'Small Breed Social',
+    //       location: 'Riverside Dog Park',
+    //       date: '2025-11-16',
+    //       time: '15:00',
+    //       attendees: 3,
+    //       description: 'Perfect for small breeds to socialize',
+    //       hostName: 'Mike',
+    //     },
+    //   ];
+    //   setPlaydates(mockPlaydates);
+    //   localStorage.setItem('playdates', JSON.stringify(mockPlaydates));
+    // }
+    const loadPlaydates = async () => {
+      const partyData = await partyApi.getAll({ includePets: true });
+      const formattedPlaydates = partyData.parties.map((p: any) => {
+        const dateObj = new Date(p.date);
+        return {
+            id: p.id,
+            title: p.title,
+            location: p.location,
+            date: dateObj.toISOString().split('T')[0],
+            time: dateObj.toISOString().split('T')[1].substring(0,5),
+            attendees: p.pets?.length ?? 0,
+            description: p.description ?? "No description provided",
+          };
+      });
+      setPlaydates(formattedPlaydates);
+    };
+    loadPlaydates();
   }, []);
 
   return (
@@ -101,7 +145,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-secondary">
-                {playdates.reduce((sum, p) => sum + p.attendees, 0)}
+                {users.filter((u) => u.isActive).length}
               </div>
               <p className="text-sm text-muted-foreground">Active members</p>
             </CardContent>
@@ -140,7 +184,6 @@ export default function Dashboard() {
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-xl">{playdate.title}</CardTitle>
-                      <CardDescription>Hosted by {playdate.hostName}</CardDescription>
                     </div>
                     <Badge variant="secondary" className="gap-1">
                       <Users className="h-3 w-3" />

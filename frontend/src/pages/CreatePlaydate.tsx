@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
+import { petApi } from '@/api/petApi';
+import { partyApi } from '@/api/partyApi';
 
 export default function CreatePlaydate() {
   const navigate = useNavigate();
@@ -16,34 +19,80 @@ export default function CreatePlaydate() {
     location: '',
     date: '',
     time: '',
+    petId: '',
     description: '',
   });
+  const [pets, setPets] = useState([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const loadPets = async () => {
+      try {
+        const profile = localStorage.getItem('profile');
+        if (!profile) throw new Error('User profile not found');
+        const { id: userId } = JSON.parse(profile);
+
+        const response = await petApi.getByOwner(userId);
+        setPets(response.pets);
+      } catch (err) {
+        console.error("Failed to fetch pets:", err);
+      }
+    };
+
+    loadPets();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const storedPlaydates = localStorage.getItem('playdates');
-    const playdates = storedPlaydates ? JSON.parse(storedPlaydates) : [];
-    
-    const profile = localStorage.getItem('profile');
-    const userName = profile ? JSON.parse(profile).name : 'Anonymous';
-    
-    const newPlaydate = {
-      id: Math.random().toString(36).substr(2, 9),
-      ...formData,
-      attendees: 1,
-      hostName: userName,
-    };
-    
-    playdates.push(newPlaydate);
-    localStorage.setItem('playdates', JSON.stringify(playdates));
-    
-    toast({
-      title: 'Playdate Created! 🎉',
-      description: 'Your playdate has been scheduled successfully.',
-    });
-    
-    navigate('/');
+    // const storedPlaydates = localStorage.getItem('playdates');
+    // const playdates = storedPlaydates ? JSON.parse(storedPlaydates) : [];
+    //
+    // const profile = localStorage.getItem('profile');
+    // const userName = profile ? JSON.parse(profile).name : 'Anonymous';
+    //
+    // const newPlaydate = {
+    //   id: Math.random().toString(36).substr(2, 9),
+    //   ...formData,
+    //   attendees: 1,
+    //   hostName: userName,
+    // };
+    //
+    // playdates.push(newPlaydate);
+    // localStorage.setItem('playdates', JSON.stringify(playdates));
+
+    // Get user id
+    // Get user's pets' ids
+    // Post playdate
+    // Add pets to playdate
+    try {
+      const createPartyResponse = await partyApi.create({
+        title: formData.title,
+        location: formData.location,
+        date: `${formData.date}T${formData.time}`,
+        description: formData.description,
+      });
+      const partyId = createPartyResponse.id;
+      console.log('Created playdate with ID:', partyId);
+
+      // Add selected pet to the created playdate
+      if (formData.petId) {
+        await partyApi.addPet(partyId, formData.petId);
+      }
+
+      console.log('Pet added to playdate:', formData.petId);
+      toast({
+        title: 'Playdate Created!',
+        description: `Your playdate has been scheduled successfully.`,
+      });
+
+      navigate('/');
+    } catch (error) {
+      console.error('Error creating playdate:', error);
+      toast({
+        title: 'Error',
+        description: `${(error)}`,
+      })
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -67,7 +116,7 @@ export default function CreatePlaydate() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="title">Playdate Title</Label>
+                <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
                   name="title"
@@ -114,6 +163,23 @@ export default function CreatePlaydate() {
                     required
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="petId">Attendee</Label>
+                <Select
+                    value={formData.petId}
+                    onValueChange={(value) => setFormData({ ...formData, petId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pets.map((pet: any) => (
+                        <SelectItem key={pet.id} value={pet.id}>{pet.name} ({pet.breed})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
