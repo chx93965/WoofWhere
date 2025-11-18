@@ -5,6 +5,26 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Plus, Users } from 'lucide-react';
+import { userApi } from '@/api/userApi';
+import { partyApi } from '@/api/partyApi';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  age: number;
+  isActive: boolean;
+}
 
 interface Playdate {
   id: string;
@@ -14,42 +34,80 @@ interface Playdate {
   time: string;
   attendees: number;
   description: string;
-  hostName: string;
 }
 
 export default function Dashboard() {
   const [playdates, setPlaydates] = useState<Playdate[]>([]);
+  const [selectedPlaydate, setSelectedPlaydate] = useState<Playdate | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const { toast } = useToast();
+
+  const [users, setUsers] = useState<Users[]>([]);
 
   useEffect(() => {
-    const stored = localStorage.getItem('playdates');
-    if (stored) {
-      setPlaydates(JSON.parse(stored));
-    } else {
-      const mockPlaydates: Playdate[] = [
-        {
-          id: '1',
-          title: 'Morning Park Run',
-          location: 'Central Park',
-          date: '2025-11-15',
-          time: '09:00',
-          attendees: 5,
-          description: 'Energetic morning run for active dogs',
-          hostName: 'Sarah',
-        },
-        {
-          id: '2',
-          title: 'Small Breed Social',
-          location: 'Riverside Dog Park',
-          date: '2025-11-16',
-          time: '15:00',
-          attendees: 3,
-          description: 'Perfect for small breeds to socialize',
-          hostName: 'Mike',
-        },
-      ];
-      setPlaydates(mockPlaydates);
-      localStorage.setItem('playdates', JSON.stringify(mockPlaydates));
-    }
+    const loadUsers = async () => {
+      const userData = await userApi.getAll();
+      const formattedUsers = userData.users.map((u: any) => {
+        return {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          age: u.age,
+          isActive: u.isActive,
+        };
+      });
+      setUsers(formattedUsers);
+    };
+    loadUsers();
+  }, []);
+
+  useEffect(() => {
+    // const stored = localStorage.getItem('playdates');
+    // if (stored) {
+    //   setPlaydates(JSON.parse(stored));
+    // } else {
+    //   const mockPlaydates: Playdate[] = [
+    //     {
+    //       id: '1',
+    //       title: 'Morning Park Run',
+    //       location: 'Central Park',
+    //       date: '2025-11-15',
+    //       time: '09:00',
+    //       attendees: 5,
+    //       description: 'Energetic morning run for active dogs',
+    //       hostName: 'Sarah',
+    //     },
+    //     {
+    //       id: '2',
+    //       title: 'Small Breed Social',
+    //       location: 'Riverside Dog Park',
+    //       date: '2025-11-16',
+    //       time: '15:00',
+    //       attendees: 3,
+    //       description: 'Perfect for small breeds to socialize',
+    //       hostName: 'Mike',
+    //     },
+    //   ];
+    //   setPlaydates(mockPlaydates);
+    //   localStorage.setItem('playdates', JSON.stringify(mockPlaydates));
+    // }
+    const loadPlaydates = async () => {
+      const partyData = await partyApi.getAll({ includePets: true });
+      const formattedPlaydates = partyData.parties.map((p: any) => {
+        const dateObj = new Date(p.date);
+        return {
+            id: p.id,
+            title: p.title,
+            location: p.location,
+            date: dateObj.toISOString().split('T')[0],
+            time: dateObj.toISOString().split('T')[1].substring(0,5),
+            attendees: p.pets?.length ?? 0,
+            description: p.description ?? "No description provided",
+          };
+      });
+      setPlaydates(formattedPlaydates);
+    };
+    loadPlaydates();
   }, []);
 
   return (
@@ -87,7 +145,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-secondary">
-                {playdates.reduce((sum, p) => sum + p.attendees, 0)}
+                {users.filter((u) => u.isActive).length}
               </div>
               <p className="text-sm text-muted-foreground">Active members</p>
             </CardContent>
@@ -126,7 +184,6 @@ export default function Dashboard() {
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-xl">{playdate.title}</CardTitle>
-                      <CardDescription>Hosted by {playdate.hostName}</CardDescription>
                     </div>
                     <Badge variant="secondary" className="gap-1">
                       <Users className="h-3 w-3" />
@@ -146,12 +203,70 @@ export default function Dashboard() {
                       {playdate.location}
                     </div>
                   </div>
-                  <Button className="w-full mt-4">Join Playdate</Button>
+                  <Button className="w-full mt-4" onClick={() => {
+    setSelectedPlaydate(playdate);
+    setShowDialog(true);
+  }}>Join Playdate</Button>
                 </CardContent>
               </Card>
             ))}
           </div>
         </div>
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>
+        {selectedPlaydate?.title}
+      </DialogTitle>
+      <DialogDescription>
+        Review details before confirming your booking.
+      </DialogDescription>
+    </DialogHeader>
+
+    {selectedPlaydate && (
+      <div className="space-y-3">
+        <p><strong>Description:</strong> {selectedPlaydate.description}</p>
+        <p><strong>Host:</strong> {selectedPlaydate.hostName}</p>
+        <p><strong>Date:</strong> {new Date(selectedPlaydate.date).toLocaleDateString()}</p>
+        <p><strong>Time:</strong> {selectedPlaydate.time}</p>
+        <p><strong>Location:</strong> {selectedPlaydate.location}</p>
+        <p><strong>Attendees:</strong> {selectedPlaydate.attendees}</p>
+      </div>
+    )}
+
+    <DialogFooter>
+      <Button
+        variant="outline"
+        onClick={() => setShowDialog(false)}
+      >
+        Cancel
+      </Button>
+      <Button
+  onClick={() => {
+    if (!selectedPlaydate) return;
+    const updated = playdates.map((p) =>
+      p.id === selectedPlaydate.id
+        ? { ...p, attendees: p.attendees + 1 }
+        : p
+    );
+
+    setPlaydates(updated);
+    localStorage.setItem("playdates", JSON.stringify(updated));
+
+    setShowDialog(false);
+    toast({
+      title: "Successfully booked! 🎉",
+      description: `You're now attending "${selectedPlaydate.title}"🥳.`,
+    });
+  }}
+>
+  Confirm Booking
+</Button>
+
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
       </main>
     </div>
   );
