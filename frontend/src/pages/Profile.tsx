@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth0 } from '@auth0/auth0-react';
 import { userApi } from '@/api/userApi';
 import { petApi } from '@/api/petApi';
+import { ChatSection } from '@/components/ChatSection';
 
 interface Profile {
   id: string;
@@ -35,12 +36,14 @@ export default function Profile() {
     name: '',
     email: '',
     age: 0,
+    id: '',
   });
   const [petForm, setPetForm] = useState<Pet>({
     name: '',
     breed: '',
     age: 0,
     size: 'medium',
+    id: '',
   });
 
   useEffect(() => {
@@ -136,9 +139,10 @@ export default function Profile() {
             <h1 className="text-4xl font-bold mb-8">Profile Settings</h1>
 
             <Tabs defaultValue="user" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="user">Your Profile</TabsTrigger>
                 <TabsTrigger value="pet">Pet Profile</TabsTrigger>
+                <TabsTrigger value="chat">Chat</TabsTrigger>
               </TabsList>
 
               <TabsContent value="user">
@@ -252,6 +256,17 @@ export default function Profile() {
                   </CardContent>
                 </Card>
               </TabsContent>
+              <TabsContent value="chat">
+  <Card>
+    <CardHeader>
+      <CardTitle>Chat</CardTitle>
+      <CardDescription>Send and receive messages in real time</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <ChatSection />
+    </CardContent>
+  </Card>
+</TabsContent>
             </Tabs>
           </main>
         )}

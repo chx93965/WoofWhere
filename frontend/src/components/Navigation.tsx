@@ -11,7 +11,7 @@ export const Navigation = () => {
     { path: '/create-playdate', label: 'Schedule', icon: Calendar },
     { path: '/map', label: 'Map', icon: Map },
     { path: '/profile', label: 'Profile', icon: User },
-    { path: '/chat', label: 'Chat', icon: MessageCircleMore },
+    // { path: '/chat', label: 'Chat', icon: MessageCircleMore },
   ];
 
   return (

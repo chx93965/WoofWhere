@@ -274,7 +274,7 @@ export default function ChatRoom() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/5">
-      <Navigation />
+      {/* <Navigation /> */}
 
       <div className="flex max-w-5xl mx-auto mt-6 border rounded-lg bg-card shadow-sm overflow-hidden min-h-[700px]">
 
