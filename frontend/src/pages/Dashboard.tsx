@@ -42,7 +42,7 @@ export default function Dashboard() {
   const [showDialog, setShowDialog] = useState(false);
   const { toast } = useToast();
 
-  const [users, setUsers] = useState<Users[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -226,7 +226,7 @@ export default function Dashboard() {
     {selectedPlaydate && (
       <div className="space-y-3">
         <p><strong>Description:</strong> {selectedPlaydate.description}</p>
-        <p><strong>Host:</strong> {selectedPlaydate.hostName}</p>
+        {/* <p><strong>Host:</strong> {selectedPlaydate.hostName}</p> */}
         <p><strong>Date:</strong> {new Date(selectedPlaydate.date).toLocaleDateString()}</p>
         <p><strong>Time:</strong> {selectedPlaydate.time}</p>
         <p><strong>Location:</strong> {selectedPlaydate.location}</p>
