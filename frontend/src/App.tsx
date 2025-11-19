@@ -8,7 +8,7 @@ import CreatePlaydate from "./pages/CreatePlaydate";
 import Profile from "./pages/Profile";
 import Map from "./pages/Map";
 import NotFound from "./pages/NotFound";
-import ChatRoom from "./pages/ChatRoom";
+// import ChatRoom from "./pages/ChatRoom";
 import { SocketProvider } from "@/lib/socket";
 
 const queryClient = new QueryClient();
@@ -26,7 +26,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/map" element={<Map />} />
           <Route path="*" element={<NotFound />} />
-          <Route path="/chat" element={<ChatRoom />} />
+          {/* <Route path="/chat" element={<ChatRoom />} /> */}
         </Routes>
       </BrowserRouter>
     </SocketProvider>
