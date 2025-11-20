@@ -34,7 +34,7 @@ const Pet = sequelize.define('Pet', {
         comment: 'Breed of the pet'
     },
     size: {
-        type: DataTypes.ENUM('small', 'medium', 'large'),
+        type: DataTypes.STRING,
         allowNull: true,
         validate: {
             isIn: {
@@ -64,14 +64,14 @@ const Pet = sequelize.define('Pet', {
         allowNull: false,
         comment: 'ID of the owner (App)',
         references: {
-            model: 'user',
+            model: 'users',
             key: 'id'
         },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
     }
 }, {
-    tableName: 'pet',
+    tableName: 'pets',
     timestamps: true,
     indexes: [
         {

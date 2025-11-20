@@ -57,7 +57,7 @@ const User = sequelize.define('User', {
         comment: 'Whether the user account is active'
     }
 }, {
-    tableName: 'user',
+    tableName: 'users',
     timestamps: true,
     indexes: [
         {

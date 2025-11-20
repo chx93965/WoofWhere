@@ -58,7 +58,7 @@ const Party = sequelize.define('Party', {
         comment: 'Description of the party'
     }
 }, {
-    tableName: 'party',
+    tableName: 'parties',
     timestamps: true,
     indexes: [
         {
