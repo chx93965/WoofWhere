@@ -14,3 +14,4 @@ import "./index.css";
 //     <App />
 //   </Auth0Provider>
 // );
+createRoot(document.getElementById('root')).render(<App />)
