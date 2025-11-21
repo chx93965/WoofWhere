@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth0 } from '@auth0/auth0-react';
+// import { useAuth0 } from '@auth0/auth0-react';
 import { userApi } from '@/api/userApi';
 import { petApi } from '@/api/petApi';
 import { ChatSection } from '@/components/ChatSection';
@@ -29,8 +29,9 @@ interface Pet {
 
 export default function Profile() {
   const { toast } = useToast();
-  let { user, isAuthenticated, loginWithRedirect, logout, isLoading } = useAuth0();
-  // isAuthenticated = true;
+  // let { user, isAuthenticated, loginWithRedirect, logout, isLoading } = useAuth0();
+  const isAuthenticated = true;
+  const isLoading = false;
 
   const [userForm, setUserForm] = useState<Profile>({
     name: '',
@@ -54,15 +55,15 @@ export default function Profile() {
     if (storedPet) setPetForm(JSON.parse(storedPet));
   }, []);
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      setUserForm((prev) => ({
-        ...prev,
-        name: user.name || prev.name,
-        email: user.email || prev.email,
-      }));
-    }
-  }, [isAuthenticated, user]);
+  // useEffect(() => {
+  //   if (isAuthenticated && user) {
+  //     setUserForm((prev) => ({
+  //       ...prev,
+  //       name: user.name || prev.name,
+  //       email: user.email || prev.email,
+  //     }));
+  //   }
+  // }, [isAuthenticated, user]);
 
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,7 +133,7 @@ export default function Profile() {
         ) : !isAuthenticated ? (
           <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)]">
             <h1 className="text-3xl font-bold mb-4">Please log in to access your profile</h1>
-            <Button onClick={() => loginWithRedirect()}>Log In</Button>
+            {/*<Button onClick={() => loginWithRedirect()}>Log In</Button>*/}
           </div>
         ) : (
           <main className="container py-8 max-w-4xl">
@@ -184,13 +185,13 @@ export default function Profile() {
                         />
                       </div>
                       <Button type="submit">Save Changes</Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
-                        className="ml-4"
-                      >
-                        Log Out
-                      </Button>
+                      {/*<Button*/}
+                      {/*  variant="secondary"*/}
+                      {/*  onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}*/}
+                      {/*  className="ml-4"*/}
+                      {/*>*/}
+                      {/*  Log Out*/}
+                      {/*</Button>*/}
                     </form>
                   </CardContent>
                 </Card>
