@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/authContext';
+import { useNavigate } from 'react-router-dom';
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,9 +30,18 @@ interface Pet {
 
 export default function Profile() {
   const { toast } = useToast();
+  const { user, setUser } = useAuth();
+  const navigate = useNavigate();
   // let { user, isAuthenticated, loginWithRedirect, logout, isLoading } = useAuth0();
   const isAuthenticated = true;
   const isLoading = false;
+
+  // useEffect(() => {
+  //     if (!user) {
+  //         navigate('/login');
+  //         return;
+  //     }
+  // }, [user, navigate]);
 
   const [userForm, setUserForm] = useState<Profile>({
     name: '',

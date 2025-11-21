@@ -54,3 +54,9 @@ spec:
                 secretKeyRef:
                   name: app-secret
                   key: DB_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: JWT_SECRET

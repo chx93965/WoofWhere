@@ -36,6 +36,20 @@ const User = sequelize.define('User', {
         },
         comment: 'App email address (unique)'
     },
+    password: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        validate: {
+            notEmpty: {
+                msg: 'Password cannot be empty'
+            },
+            len: {
+                args: [6, 100],
+                msg: 'Password must be at least 6 characters long'
+            }
+        },
+        comment: 'Hashed password for user authentication'
+    },
     age: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -75,8 +89,10 @@ const User = sequelize.define('User', {
 
 // Instance methods
 User.prototype.toJSON = function() {
-    // TODO: Remove sensitive fields if needed
-    return {...this.get()};
+    // Remove password from the returned object
+    const values = Object.assign({}, this.get());
+    delete values.password;
+    return values;
 };
 
 module.exports = User;

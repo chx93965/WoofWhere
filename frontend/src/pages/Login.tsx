@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/authContext";
+import { userApi } from '@/api/userApi';
 
 const Login = () => {
     const [error, setError] = useState("");
@@ -19,28 +20,21 @@ const Login = () => {
         e.preventDefault();
         setError(""); // Clear previous errors
 
-        // try {
-        //     const response = await fetch("http://localhost:5000/api/users/login", {
-        //         method: "POST",
-        //         headers: {
-        //             "Content-Type": "application/json",
-        //         },
-        //         body: JSON.stringify({ username, password }),
-        //     });
-        //
-        //     const data = await response.json();
-        //     console.log("Response data:", data); // Log the response data for debugging
-        //     if (!response.ok) {
-        //         throw new Error(data.message || "Invalid username or password");
-        //     }
-        //
-        //     console.log("Login successful:", data.user);
-        //     setUser(data.user);
-        //     // Redirect to /restaurant on successful login
-        //     navigate("/");
-        // } catch (err) {
-        //     setError(err.message);
-        // }
+        try {
+            console.log("Logging in user...");
+            const response = await userApi.login({ username, password });
+            if (!response.ok) {
+                throw new Error(response.message || "Invalid username or password");
+            }
+
+            const userId = response.user.id;
+            console.log('User logged in with ID:', userId);
+
+            setUser(response.user);
+            navigate("/");
+        } catch (err) {
+            setError(err.message);
+        }
     };
 
     return (
@@ -87,7 +81,7 @@ const Login = () => {
 
                 <p className="text-sm text-gray-600 text-center mt-4">
                     Don't have an account?{" "}
-                    <a href="/register" className="text-blue-500 hover:underline">
+                    <a href="/signup" className="text-blue-500 hover:underline">
                         Sign up
                     </a>
                 </p>

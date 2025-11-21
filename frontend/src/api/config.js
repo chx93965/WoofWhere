@@ -1,5 +1,4 @@
 const API_BASE_URL = '';
-// const API_BASE_URL = 'http://app-service.default.svc.cluster.local:4001';
 
 export const API_CONFIG = {
     baseURL: API_BASE_URL,
@@ -16,6 +15,7 @@ export const API_ENDPOINTS = {
     userStats: '/api/user/stats',
     userById: (id) => `/api/user/${id}`,
     userCreate: '/api/user',
+    userLogin: '/api/user/login',
     userUpdate: (id) => `/api/user/${id}`,
     userDelete: (id) => `/api/user/${id}`,
     userDeactivate: (id) => `/api/user/${id}/deactivate`,

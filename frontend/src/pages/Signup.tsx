@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { userApi } from '@/api/userApi';
 
 const Signup = () => {
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [role, setRole] = useState("customer"); // Default role
-    const [token, setToken] = useState(""); // Token for owner/server
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -24,18 +22,20 @@ const Signup = () => {
             return;
         }
 
-        // TODO: Token Validation
-
         try {
-            const response = await axios.post("http://localhost:4001/api/users", {
+            console.log("Creating user...");
+            const response = await userApi.create({
                 username,
                 email,
                 password,
-                role: role,
             });
+            if (!response.ok) {
+                throw new Error(response.message || "Signup failed.");
+            }
 
-            console.log("User created:", response.data);
-            // Redirect to login after signup
+            const userId = response.id;
+            console.log('User created with ID:', userId);
+
             navigate("/login", {
                 state: {
                     username,
@@ -43,7 +43,7 @@ const Signup = () => {
                 }
             });
         } catch (err) {
-            setError(err.response?.data?.message || "Signup failed. Try again.");
+            setError(err.message);
         } finally {
             setLoading(false);
         }
@@ -57,35 +57,6 @@ const Signup = () => {
                 {error && <p className="text-red-500 text-sm text-center mt-2">{error}</p>}
 
                 <form onSubmit={handleSubmit} className="mt-4">
-                    <div className="mb-4">
-                        <label htmlFor="role" className="block text-gray-700 font-medium">Role</label>
-                        <select
-                            id="role"
-                            required
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
-                            className="w-full px-4 py-2 mt-1 border rounded-lg focus:ring focus:ring-blue-200 focus:outline-none"
-                        >
-                            <option value="owner">Owner</option>
-                            <option value="server">Server</option>
-                            <option value="customer">Customer</option>
-                        </select>
-
-                        {(role === "owner" || role === "server") && (
-                            <div className="mb-4">
-                                <label htmlFor="token" className="block text-gray-700 font-medium">Token</label>
-                                <input
-                                    type="text"
-                                    id='token'
-                                    required
-                                    value={token}
-                                    onChange={(e) => setToken(e.target.value)}
-                                    placeholder="Enter your token"
-                                    className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-200 focus:outline-none"
-                                />
-                            </div>
-                        )}
-                    </div>
 
                     <div className="mb-4">
                         <label htmlFor="username" className="block text-gray-700 font-medium">Username</label>
@@ -152,7 +123,7 @@ const Signup = () => {
 
                 <p className="text-sm text-gray-600 text-center mt-4">
                     Already have an account?{" "}
-                    <a href="/frontend/src/Login" className="text-blue-500 hover:underline">
+                    <a href="/login" className="text-blue-500 hover:underline">
                         Login
                     </a>
                 </p>

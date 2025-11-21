@@ -1,5 +1,7 @@
 const { User, Pet, Party} = require("../models");
 const { sequelize } = require("../config/db");
+const { bcrypt } = require('bcrypt');
+const { jwt } = require('jsonwebtoken');
 
 // Get all users with pagination and filtering
 exports.getAllUsers = async (req, res) => {
@@ -97,14 +99,29 @@ exports.getUserById = async (req, res) => {
 // Create new user
 exports.createUser = async (req, res) => {
     try {
-        const { name, email, age } = req.body;
-        if (!name || !email) {
+        const { name, email, password, age } = req.body;
+        if (!name || !email || !password) {
             return res.status(400).json({
-                error: 'Name and email are required'
+                error: 'Name, email, and password are required'
             });
         }
 
-        const user = await User.create({ name, email, age });
+        // check for existing name or email
+        const existingName = await User.findOne({ where: { name } });
+        if (existingName) {
+            return res.status(409).json({
+                error: 'Name already exists'
+            });
+        }
+        const existingEmail = await User.findOne({ where: { email } });
+        if (existingEmail) {
+            return res.status(409).json({
+                error: 'Email already exists'
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await User.create({ name, email, hashedPassword, age });
         res.status(201).json(user);
     } catch (error) {
         console.error('Error creating user:', error);
@@ -118,6 +135,32 @@ exports.createUser = async (req, res) => {
                 error: error.errors.map(e => e.message).join(', ')
             });
         }
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Login user
+exports.loginUser = async (req, res) => {
+    try {
+        const { name, password } = req.body;
+        if (!name || !password) {
+            return res.status(400).json({ error: 'Name and password are required' });
+        }
+
+        const user = await User.findOne({ where: { name } });
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid name' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.hashedPassword);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Invalid password' });
+        }
+
+        const token = jwt.sign({ id: user.id, name: user.name }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        res.json({ token: token, user: user });
+    } catch (error) {
+        console.error('Error logging in user:', error);
         res.status(500).json({ error: error.message });
     }
 };

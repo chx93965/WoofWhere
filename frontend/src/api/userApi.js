@@ -18,6 +18,10 @@ export const userApi = {
         const response = await apiClient.post(API_ENDPOINTS.userCreate, data);
         return response.data;
     },
+    login: async (data) => {
+        const response = await apiClient.post(API_ENDPOINTS.userLogin, data);
+        return response.data;
+    },
     update: async (id, data) => {
         const response = await apiClient.put(API_ENDPOINTS.userUpdate(id), data);
         return response.data;

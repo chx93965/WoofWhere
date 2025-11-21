@@ -8,11 +8,16 @@ const partyRoutes = require('./routes/partyRoutes');
 const { sequelize } = require('./config/db');
 
 const app = express();
+// app.set("trust proxy", 1);
 const PORT = process.env.PORT || 4001;
 
 // Security
 app.use(helmet());
 app.use(cors());
+
+// Body parsing
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -21,10 +26,6 @@ const limiter = rateLimit({
     message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
-
-// Body parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // Request logging
 app.use((req, res, next) => {
