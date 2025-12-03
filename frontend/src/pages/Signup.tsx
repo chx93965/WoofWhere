@@ -25,15 +25,15 @@ const Signup = () => {
         try {
             console.log("Creating user...");
             const response = await userApi.create({
-                username,
-                email,
-                password,
+                name: username,
+                email: email,
+                password: password,
             });
-            if (!response.ok) {
+            if (response.status !== 201) {
                 throw new Error(response.message || "Signup failed.");
             }
 
-            const userId = response.id;
+            const userId = response.data.id;
             console.log('User created with ID:', userId);
 
             navigate("/login", {

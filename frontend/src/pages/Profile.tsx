@@ -35,13 +35,13 @@ export default function Profile() {
   // let { user, isAuthenticated, loginWithRedirect, logout, isLoading } = useAuth0();
   const isAuthenticated = true;
   const isLoading = false;
+    useEffect(() => {
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+    }, [user, navigate]);
 
-  // useEffect(() => {
-  //     if (!user) {
-  //         navigate('/login');
-  //         return;
-  //     }
-  // }, [user, navigate]);
 
   const [userForm, setUserForm] = useState<Profile>({
     name: '',
@@ -62,16 +62,6 @@ export default function Profile() {
     if (storedProfile) setUserForm(JSON.parse(storedProfile));
     if (storedPet) setPetForm(JSON.parse(storedPet));
   }, []);
-
-  // useEffect(() => {
-  //   if (isAuthenticated && user) {
-  //     setUserForm((prev) => ({
-  //       ...prev,
-  //       name: user.name || prev.name,
-  //       email: user.email || prev.email,
-  //     }));
-  //   }
-  // }, [isAuthenticated, user]);
 
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

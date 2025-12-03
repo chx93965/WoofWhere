@@ -22,15 +22,18 @@ const Login = () => {
 
         try {
             console.log("Logging in user...");
-            const response = await userApi.login({ username, password });
-            if (!response.ok) {
+            const response = await userApi.login({
+                name: username,
+                password: password,
+            });
+            if (response.status !== 200) {
                 throw new Error(response.message || "Invalid username or password");
             }
 
-            const userId = response.user.id;
+            const userId = response.data.user.id;
             console.log('User logged in with ID:', userId);
 
-            setUser(response.user);
+            setUser(response.data.user);
             navigate("/");
         } catch (err) {
             setError(err.message);

@@ -1,41 +1,32 @@
 import apiClient from './client';
-import { API_ENDPOINTS } from './config';
+import {API_ENDPOINTS} from './config';
 
 export const userApi = {
     getAll: async (params) => {
-        const response = await apiClient.get(API_ENDPOINTS.users, { params });
-        return response.data;
+        return await apiClient.get(API_ENDPOINTS.users, {params});
     },
     getStats: async () => {
-        const response = await apiClient.get(API_ENDPOINTS.userStats);
-        return response.data;
+        return await apiClient.get(API_ENDPOINTS.userStats);
     },
     getById: async (id) => {
-        const response = await apiClient.get(API_ENDPOINTS.userById(id));
-        return response.data;
+        return await apiClient.get(API_ENDPOINTS.userById(id));
     },
     create: async (data) => {
-        const response = await apiClient.post(API_ENDPOINTS.userCreate, data);
-        return response.data;
+        return await apiClient.post(API_ENDPOINTS.userCreate, data);
     },
     login: async (data) => {
-        const response = await apiClient.post(API_ENDPOINTS.userLogin, data);
-        return response.data;
+        return await apiClient.post(API_ENDPOINTS.userLogin, data);
     },
     update: async (id, data) => {
-        const response = await apiClient.put(API_ENDPOINTS.userUpdate(id), data);
-        return response.data;
+        return await apiClient.put(API_ENDPOINTS.userUpdate(id), data);
     },
     delete: async (id) => {
-        const response = await apiClient.delete(API_ENDPOINTS.userDelete(id));
-        return response.data;
+        return await apiClient.delete(API_ENDPOINTS.userDelete(id));
     },
     deactivate: async (id) => {
-        const response = await apiClient.patch(API_ENDPOINTS.userDeactivate(id));
-        return response.data;
+        return await apiClient.patch(API_ENDPOINTS.userDeactivate(id));
     },
     activate: async (id) => {
-        const response = await apiClient.patch(API_ENDPOINTS.userActivate(id));
-        return response.data;
+        return await apiClient.patch(API_ENDPOINTS.userActivate(id));
     },
 };

@@ -1,7 +1,7 @@
 const { User, Pet, Party} = require("../models");
 const { sequelize } = require("../config/db");
-const { bcrypt } = require('bcrypt');
-const { jwt } = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 // Get all users with pagination and filtering
 exports.getAllUsers = async (req, res) => {
@@ -121,8 +121,8 @@ exports.createUser = async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await User.create({ name, email, hashedPassword, age });
-        res.status(201).json(user);
+        const user = await User.create({name, email, password: hashedPassword, age });
+        res.status(201).json(user.toJSON());
     } catch (error) {
         console.error('Error creating user:', error);
         if (error.name === 'SequelizeUniqueConstraintError') {
@@ -131,6 +131,9 @@ exports.createUser = async (req, res) => {
             });
         }
         if (error.name === 'SequelizeValidationError') {
+            console.log(req.body);
+            const hashedPassword = await bcrypt.hash(req.body.password, 10);
+            console.log(hashedPassword);
             return res.status(400).json({
                 error: error.errors.map(e => e.message).join(', ')
             });
@@ -152,7 +155,10 @@ exports.loginUser = async (req, res) => {
             return res.status(401).json({ error: 'Invalid name' });
         }
 
-        const isMatch = await bcrypt.compare(password, user.hashedPassword);
+        console.log(user);
+        console.log(password);
+        console.log(`stored password: ${user.password}`);
+        const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ error: 'Invalid password' });
         }
