@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { userApi } from '@/api/userApi';
+import { Button } from '@/components/ui/button';
 
 const Signup = () => {
     const [username, setUsername] = useState("");
@@ -50,7 +51,7 @@ const Signup = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/5">
             <div className="w-full max-w-md bg-white p-8 shadow-lg rounded-lg">
                 <h2 className="text-2xl font-semibold text-center text-gray-800">Sign Up</h2>
 
@@ -110,20 +111,14 @@ const Signup = () => {
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className={`w-full py-2 px-4 rounded-lg transition duration-300 ${
-                            loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600 text-white"
-                        }`}
-                    >
+                    <Button type="submit" className="w-full" disabled={loading}>
                         {loading ? "Signing Up..." : "Sign Up"}
-                    </button>
+                    </Button>
                 </form>
 
                 <p className="text-sm text-gray-600 text-center mt-4">
                     Already have an account?{" "}
-                    <a href="/login" className="text-blue-500 hover:underline">
+                    <a href="/login" className="text-orange-500 hover:underline">
                         Login
                     </a>
                 </p>

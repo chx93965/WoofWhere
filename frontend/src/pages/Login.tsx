@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/authContext";
 import { userApi } from '@/api/userApi';
+import { Button } from '@/components/ui/button';
 
 const Login = () => {
     const [error, setError] = useState("");
@@ -41,7 +42,7 @@ const Login = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/5">
             <div className="w-full max-w-md bg-white p-8 shadow-lg rounded-lg">
                 <h2 className="text-2xl font-semibold text-center text-gray-800">Login</h2>
 
@@ -74,17 +75,12 @@ const Login = () => {
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300"
-                    >
-                        Login
-                    </button>
+                    <Button type="submit" className="w-full">Login</Button>
                 </form>
 
                 <p className="text-sm text-gray-600 text-center mt-4">
                     Don't have an account?{" "}
-                    <a href="/signup" className="text-blue-500 hover:underline">
+                    <a href="/signup" className="text-orange-500 hover:underline">
                         Sign up
                     </a>
                 </p>

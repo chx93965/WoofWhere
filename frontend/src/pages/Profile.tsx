@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-// import { useAuth0 } from '@auth0/auth0-react';
 import { userApi } from '@/api/userApi';
 import { petApi } from '@/api/petApi';
 
@@ -32,15 +31,15 @@ export default function Profile() {
   const { toast } = useToast();
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
-  // let { user, isAuthenticated, loginWithRedirect, logout, isLoading } = useAuth0();
   const isAuthenticated = true;
   const isLoading = false;
-    useEffect(() => {
-        if (!user) {
-            navigate('/login');
-            return;
-        }
-    }, [user, navigate]);
+
+  useEffect(() => {
+      if (!user) {
+          navigate('/login');
+          return;
+      }
+  }, [user, navigate]);
 
 
   const [userForm, setUserForm] = useState<Profile>({
@@ -66,24 +65,23 @@ export default function Profile() {
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // TODO: Post user
+    // Update user
     try {
-      console.log("Creating user with data:", userForm);
-      const response = await userApi.create({
+      console.log("Updating user with data:", userForm);
+      const response = await userApi.update(user.id, {
         name: userForm.name,
         email: userForm.email,
         age: userForm.age,
       });
-      const userId = response.id;
-      localStorage.setItem('profile', JSON.stringify({...userForm, id: userId}));
+      localStorage.setItem('profile', JSON.stringify({...userForm, id: user.id}));
 
-      console.log('User created with ID:', userId);
+      console.log('User updated with ID:', user.id);
       toast({
         title: 'Profile Updated',
         description: `Your profile has been saved successfully.`,
       });
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error('Error updating user:', error);
     }
   };
 
@@ -156,6 +154,7 @@ export default function Profile() {
                         <Input
                           id="name"
                           value={userForm.name}
+                          placeholder={user.name}
                           onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
                           required
                         />
@@ -166,6 +165,7 @@ export default function Profile() {
                           id="email"
                           type="email"
                           value={userForm.email}
+                          placeholder={user.email}
                           onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
                           required
                         />
@@ -178,17 +178,11 @@ export default function Profile() {
                             min="0"
                             max="150"
                             value={userForm.age}
+                            placeholder={user.name? user.name : 0}
                             onChange={(e) => setUserForm({ ...userForm, age: parseInt(e.target.value) })}
                         />
                       </div>
                       <Button type="submit">Save Changes</Button>
-                      {/*<Button*/}
-                      {/*  variant="secondary"*/}
-                      {/*  onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}*/}
-                      {/*  className="ml-4"*/}
-                      {/*>*/}
-                      {/*  Log Out*/}
-                      {/*</Button>*/}
                     </form>
                   </CardContent>
                 </Card>
