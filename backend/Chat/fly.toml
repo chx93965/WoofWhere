@@ -1,0 +1,18 @@
+app = "ece1779-f25-two-user-chat-edge"
+primary_region = "yyz"
+
+[build]
+  dockerfile = "./Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"   # scale-to-zero when idle
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
