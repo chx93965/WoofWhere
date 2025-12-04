@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Home, Calendar, User, Map } from 'lucide-react';
+import { Home, Calendar, User, Map, MessageCircleMore } from 'lucide-react';
 import { useAuth } from "@/context/authContext";
 import { useNavigate } from "react-router-dom";
+import path from 'path';
 
 export const Navigation = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export const Navigation = () => {
     { path: '/create-playdate', label: 'Schedule', icon: Calendar },
     { path: '/map', label: 'Map', icon: Map },
     { path: '/profile', label: 'Profile', icon: User },
+    // { path: '/chat', label: 'Chat', icon: MessageCircleMore },
   ];
 
   const handleLogout = () => {
