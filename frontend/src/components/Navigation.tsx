@@ -1,8 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Home, Calendar, User, Map } from 'lucide-react';
+import { useAuth } from "@/context/authContext";
+import { useNavigate } from "react-router-dom";
 
 export const Navigation = () => {
+  const navigate = useNavigate();
+  const { user, setUser } = useAuth();
+
   const location = useLocation();
 
   const navItems = [
@@ -11,6 +16,15 @@ export const Navigation = () => {
     { path: '/map', label: 'Map', icon: Map },
     { path: '/profile', label: 'Profile', icon: User },
   ];
+
+  const handleLogout = () => {
+    setUser(null);
+    // localStorage.clear();
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    navigate("/");
+  };
+
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -39,6 +53,33 @@ export const Navigation = () => {
               </Link>
             );
           })}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {user ? (
+            <>
+              <span className="font-mono font-bold text-lg text-amber-950">Hi, {user.name}</span>
+              <span></span>
+              <Button
+                variant={'link'}
+                size="sm"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button
+                  variant={'link'}
+                  size="sm"
+                >
+                  Login
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>
