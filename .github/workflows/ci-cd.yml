@@ -45,11 +45,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ env.BACKEND_IMAGE }}:${{ IMAGE_TAG }} ./backend/App
+          docker build -t ${{ env.BACKEND_IMAGE }}:${IMAGE_TAG} ./backend/App
 
       - name: Push Docker image
         run: |
-          docker push ${{ env.BACKEND_IMAGE }}:${{ IMAGE_TAG }}
+          docker push ${{ env.BACKEND_IMAGE }}:${IMAGE_TAG}
 
 #  # Job 2: Build and Test Frontend
 #  build-frontend:
