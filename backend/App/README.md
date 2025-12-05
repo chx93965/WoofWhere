@@ -227,7 +227,7 @@ docker compose up -d
 
 ```bash
 # 1. Deploy PostgreSQL
-./scripts/deploy-database.sh
+./scripts/deploy-postgres.sh
 
 # 2. Build and push images
 docker build -t your-registry/app:latest ./services/App
@@ -236,18 +236,7 @@ docker push your-registry/app:latest
 docker build -t your-registry/frontend:latest ./frontend
 docker push your-registry/frontend:latest
 
-# 3. Deploy services
-kubectl apply -f k8s/deployments/
-kubectl apply -f k8s/services/
-kubectl apply -f k8s/ingress.yaml
 
-# 4. Check status
-kubectl get pods -n microservices
-kubectl get svc -n microservices
-
-# 5. Access application
-kubectl port-forward svc/frontend-service 8080:80 -n microservices
-# Open: http://localhost:8080
 ```
 
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/authContext";
+import { userApi } from '@/api/userApi';
+import { Button } from '@/components/ui/button';
 
 const Login = () => {
     const [error, setError] = useState("");
@@ -19,32 +21,28 @@ const Login = () => {
         e.preventDefault();
         setError(""); // Clear previous errors
 
-        // try {
-        //     const response = await fetch("http://localhost:5000/api/users/login", {
-        //         method: "POST",
-        //         headers: {
-        //             "Content-Type": "application/json",
-        //         },
-        //         body: JSON.stringify({ username, password }),
-        //     });
-        //
-        //     const data = await response.json();
-        //     console.log("Response data:", data); // Log the response data for debugging
-        //     if (!response.ok) {
-        //         throw new Error(data.message || "Invalid username or password");
-        //     }
-        //
-        //     console.log("Login successful:", data.user);
-        //     setUser(data.user);
-        //     // Redirect to /restaurant on successful login
-        //     navigate("/");
-        // } catch (err) {
-        //     setError(err.message);
-        // }
+        try {
+            console.log("Logging in user...");
+            const response = await userApi.login({
+                name: username,
+                password: password,
+            });
+            if (response.status !== 200) {
+                throw new Error(response.message || "Invalid username or password");
+            }
+
+            const userId = response.data.user.id;
+            console.log('User logged in with ID:', userId);
+
+            setUser(response.data.user);
+            navigate("/");
+        } catch (err) {
+            setError(err.message);
+        }
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/5">
             <div className="w-full max-w-md bg-white p-8 shadow-lg rounded-lg">
                 <h2 className="text-2xl font-semibold text-center text-gray-800">Login</h2>
 
@@ -77,17 +75,12 @@ const Login = () => {
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300"
-                    >
-                        Login
-                    </button>
+                    <Button type="submit" className="w-full">Login</Button>
                 </form>
 
                 <p className="text-sm text-gray-600 text-center mt-4">
                     Don't have an account?{" "}
-                    <a href="/register" className="text-blue-500 hover:underline">
+                    <a href="/signup" className="text-orange-500 hover:underline">
                         Sign up
                     </a>
                 </p>

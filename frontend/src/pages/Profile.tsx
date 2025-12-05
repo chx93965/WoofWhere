@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/authContext';
+import { useNavigate } from 'react-router-dom';
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth0 } from '@auth0/auth0-react';
 import { userApi } from '@/api/userApi';
 import { petApi } from '@/api/petApi';
 import { ChatSection } from '@/components/ChatSection';
@@ -29,8 +30,18 @@ interface Pet {
 
 export default function Profile() {
   const { toast } = useToast();
-  let { user, isAuthenticated, loginWithRedirect, logout, isLoading } = useAuth0();
-  // isAuthenticated = true;
+  const { user, setUser } = useAuth();
+  const navigate = useNavigate();
+  const isAuthenticated = true;
+  const isLoading = false;
+
+  useEffect(() => {
+      if (!user) {
+          navigate('/login');
+          return;
+      }
+  }, [user, navigate]);
+
 
   const [userForm, setUserForm] = useState<Profile>({
     name: '',
@@ -54,37 +65,26 @@ export default function Profile() {
     if (storedPet) setPetForm(JSON.parse(storedPet));
   }, []);
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      setUserForm((prev) => ({
-        ...prev,
-        name: user.name || prev.name,
-        email: user.email || prev.email,
-      }));
-    }
-  }, [isAuthenticated, user]);
-
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // TODO: Post user
+    // Update user
     try {
-      console.log("Creating user with data:", userForm);
-      const response = await userApi.create({
+      console.log("Updating user with data:", userForm);
+      const response = await userApi.update(user.id, {
         name: userForm.name,
         email: userForm.email,
         age: userForm.age,
       });
-      const userId = response.id;
-      localStorage.setItem('profile', JSON.stringify({...userForm, id: userId}));
+      localStorage.setItem('profile', JSON.stringify({...userForm, id: user.id}));
 
-      console.log('User created with ID:', userId);
+      console.log('User updated with ID:', user.id);
       toast({
         title: 'Profile Updated',
         description: `Your profile has been saved successfully.`,
       });
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error('Error updating user:', error);
     }
   };
 
@@ -132,7 +132,7 @@ export default function Profile() {
         ) : !isAuthenticated ? (
           <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)]">
             <h1 className="text-3xl font-bold mb-4">Please log in to access your profile</h1>
-            <Button onClick={() => loginWithRedirect()}>Log In</Button>
+            {/*<Button onClick={() => loginWithRedirect()}>Log In</Button>*/}
           </div>
         ) : (
           <main className="container py-8 max-w-4xl">
@@ -158,6 +158,7 @@ export default function Profile() {
                         <Input
                           id="name"
                           value={userForm.name}
+                          placeholder={user.name}
                           onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
                           required
                         />
@@ -168,6 +169,7 @@ export default function Profile() {
                           id="email"
                           type="email"
                           value={userForm.email}
+                          placeholder={user.email}
                           onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
                           required
                         />
@@ -180,17 +182,11 @@ export default function Profile() {
                             min="0"
                             max="150"
                             value={userForm.age}
+                            placeholder={user.name? user.name : 0}
                             onChange={(e) => setUserForm({ ...userForm, age: parseInt(e.target.value) })}
                         />
                       </div>
                       <Button type="submit">Save Changes</Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
-                        className="ml-4"
-                      >
-                        Log Out
-                      </Button>
                     </form>
                   </CardContent>
                 </Card>

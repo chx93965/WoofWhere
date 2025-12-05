@@ -8,11 +8,16 @@ const partyRoutes = require('./routes/partyRoutes');
 const { sequelize } = require('./config/db');
 
 const app = express();
+// app.set("trust proxy", 1);
 const PORT = process.env.PORT || 4001;
 
 // Security
 app.use(helmet());
 app.use(cors());
+
+// Body parsing
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -21,10 +26,6 @@ const limiter = rateLimit({
     message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
-
-// Body parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // Request logging
 app.use((req, res, next) => {
@@ -72,7 +73,7 @@ const startServer = async () => {
         console.log('App db connected');
 
         // Sync models (create/update tables)
-        await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
+        await sequelize.sync({ alter: true });
         console.log('App models synchronized with database');
 
         app.listen(PORT, '0.0.0.0', () => {
