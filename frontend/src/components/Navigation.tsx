@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Home, Calendar, User, Map, MessageCircleMore } from 'lucide-react';
+import { Home, Calendar, User, Map, LogInIcon } from 'lucide-react';
 import { useAuth } from "@/context/authContext";
 import { useNavigate } from "react-router-dom";
 import path from 'path';
@@ -15,7 +15,8 @@ export const Navigation = () => {
     { path: '/', label: 'Home', icon: Home },
     { path: '/create-playdate', label: 'Schedule', icon: Calendar },
     { path: '/map', label: 'Map', icon: Map },
-    { path: '/profile', label: 'Profile', icon: User },
+    { path: '/profile', label: 'Profile', icon: User }, 
+    { path: '/login', label: 'Login', icon: LogInIcon }
     // { path: '/chat', label: 'Chat', icon: MessageCircleMore },
   ];
 
@@ -57,7 +58,7 @@ export const Navigation = () => {
           })}
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           {user ? (
             <>
               <span className="font-mono font-bold text-lg text-amber-950">Hi, {user.name}</span>
@@ -82,7 +83,7 @@ export const Navigation = () => {
               </Link>
             </>
           )}
-        </div>
+        </div> */}
       </div>
     </nav>
   );
