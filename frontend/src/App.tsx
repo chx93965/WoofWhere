@@ -11,7 +11,6 @@ import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
 import NotFound from "./pages/NotFound";
 import ChatRoom from "./pages/ChatRoom";
-import { SocketProvider } from "@/lib/socket";
 
 const queryClient = new QueryClient();
 
@@ -20,7 +19,6 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <SocketProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Dashboard />} />
@@ -33,7 +31,6 @@ const App = () => (
           <Route path="/chat" element={<ChatRoom />} />
         </Routes>
       </BrowserRouter>
-    </SocketProvider>
   </TooltipProvider>
 </QueryClientProvider>
 );
