@@ -28,7 +28,6 @@
     # Clean previous build if any
     RUN rm -rf dist
     
-    RUN npm install dayjs
     # Build the app
     RUN npm run build
     

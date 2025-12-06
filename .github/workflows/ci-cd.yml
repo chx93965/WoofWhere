@@ -5,12 +5,12 @@ on:
     branches:
       - main
       # TODO: remove in production
-      - CI/CD
+      - pipeline_modification
   pull_request:
     branches:
       - main
       # TODO: remove in production
-      - CI/CD
+      - pipeline_modification
 
 env:
   REGISTRY: docker.io
