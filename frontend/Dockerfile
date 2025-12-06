@@ -26,7 +26,7 @@
     ENV VITE_API_URL=$VITE_API_URL
     
     # Clean previous build if any
-    RUN rm -rf dist
+#    RUN rm -rf dist
     
     # Build the app
     RUN npm run build
