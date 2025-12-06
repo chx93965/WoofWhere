@@ -77,6 +77,7 @@ export default function Profile() {
         age: userForm.age,
       });
       localStorage.setItem('profile', JSON.stringify({...userForm, id: user.id}));
+      setUser(response.data);
 
       console.log('User updated with ID:', user.id);
       toast({
