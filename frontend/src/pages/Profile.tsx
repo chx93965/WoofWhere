@@ -71,11 +71,16 @@ export default function Profile() {
     // Update user
     try {
       console.log("Updating user with data:", userForm);
-      const response = await userApi.update(user.id, {
-        name: userForm.name,
-        email: userForm.email,
-        age: userForm.age,
-      });
+      const payload = Object.fromEntries(
+          Object.entries({
+            name: userForm.name,
+            email: userForm.email,
+            age: userForm.age,
+          }).filter(([_, value]) =>
+              value !== "" && value !== '' && value !== 0 && value !== null && value !== undefined)
+      );
+      const response = await userApi.update(user.id, payload);
+
       localStorage.setItem('profile', JSON.stringify({...userForm, id: user.id}));
       setUser(response.data);
 
@@ -161,7 +166,6 @@ export default function Profile() {
                           value={userForm.name}
                           placeholder={user.name}
                           onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                          required
                         />
                       </div>
                       <div className="space-y-2">
@@ -172,7 +176,6 @@ export default function Profile() {
                           value={userForm.email}
                           placeholder={user.email}
                           onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                          required
                         />
                       </div>
                       <div className="space-y-2">
