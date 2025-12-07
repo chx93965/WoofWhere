@@ -21,9 +21,9 @@ export const Navigation = () => {
 
   const handleLogout = () => {
     setUser(null);
-    // localStorage.clear();
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
+    localStorage.clear();
+    // localStorage.removeItem("user");
+    // localStorage.removeItem("token");
     navigate("/");
   };
 

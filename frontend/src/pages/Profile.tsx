@@ -44,17 +44,17 @@ export default function Profile() {
 
 
   const [userForm, setUserForm] = useState<Profile>({
+    id: '',
     name: '',
     email: '',
     age: 0,
-    id: '',
   });
   const [petForm, setPetForm] = useState<Pet>({
+    id: '',
     name: '',
     breed: '',
     age: 0,
     size: 'medium',
-    id: '',
   });
 
   useEffect(() => {
@@ -67,7 +67,6 @@ export default function Profile() {
 
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     // Update user
     try {
       console.log("Updating user with data:", userForm);
@@ -96,24 +95,18 @@ export default function Profile() {
 
   const handlePetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('pet', JSON.stringify(petForm));
-
-    // Get user id
     // Post pet
     try {
-      const profile = localStorage.getItem('profile');
-      if (!profile) throw new Error('User profile not found');
-      const {id: userId} = JSON.parse(profile);
-
       const response = await petApi.create({
         name: petForm.name,
         breed: petForm.breed,
         size: petForm.size,
         age: petForm.age,
-        ownerId: userId
+        ownerId: user.id
       });
 
-      console.log('Pet added with ID:', response.id);
+      localStorage.setItem('pet', JSON.stringify({...petForm, id: response.data.id}));
+      console.log('Pet added with ID:', response.data.id);
       toast({
         title: 'Pet Profile Updated',
         description: `${petForm.name}'s profile has been saved successfully.`,

@@ -11,7 +11,8 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const s = io("http://localhost:4000", { transports: ["websocket"] }); //REMOVE IF NEEDED - 0
+    // TODO: modify hardcoded URL
+    const s = io("http://localhost:4001", { transports: ["websocket"] }); //REMOVE IF NEEDED - 0
     setSocket(s);
 
     return () => {

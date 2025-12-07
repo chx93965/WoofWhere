@@ -8,8 +8,8 @@ export const userApi = {
     getStats: async () => {
         return await apiClient.get(API_ENDPOINTS.userStats);
     },
-    getById: async (id) => {
-        return await apiClient.get(API_ENDPOINTS.userById(id));
+    getById: async (id, params) => {
+        return await apiClient.get(API_ENDPOINTS.userById(id), {params});
     },
     create: async (data) => {
         return await apiClient.post(API_ENDPOINTS.userCreate, data);

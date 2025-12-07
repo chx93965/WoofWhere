@@ -1,37 +1,29 @@
 import apiClient from './client';
-import { API_ENDPOINTS } from './config';
+import {API_ENDPOINTS} from './config';
 
 export const petApi = {
     getAll: async (params) => {
-        const response = await apiClient.get(API_ENDPOINTS.pets, { params });
-        return response.data;
+        return await apiClient.get(API_ENDPOINTS.pets, {params});
     },
-    getById: async (params) => {
-        const response = await apiClient.get(API_ENDPOINTS.petById(id));
-        return response.data;
+    getById: async (id, params) => {
+        return await apiClient.get(API_ENDPOINTS.petById(id), {params});
     },
     create: async (data) => {
-        const response = await apiClient.post(API_ENDPOINTS.petCreate, data);
-        return response.data;
+        return await apiClient.post(API_ENDPOINTS.petCreate, data);
     },
     update: async (id, data) => {
-        const response = await apiClient.put(API_ENDPOINTS.petUpdate(id), data);
-        return response.data;
+        return await apiClient.put(API_ENDPOINTS.petUpdate(id), data);
     },
     delete: async (id) => {
-        const response = await apiClient.delete(API_ENDPOINTS.petDelete(id));
-        return response.data;
+        return await apiClient.delete(API_ENDPOINTS.petDelete(id));
     },
     getByOwner: async (ownerId) => {
-        const response = await apiClient.get(API_ENDPOINTS.petsByOwner(ownerId));
-        return response.data;
+        return await apiClient.get(API_ENDPOINTS.petsByOwner(ownerId));
     },
     getParties: async (id) => {
-        const response = await apiClient.get(API_ENDPOINTS.petParties(id));
-        return response.data;
+        return await apiClient.get(API_ENDPOINTS.petParties(id));
     },
     transfer: async (id, newOwnerId) => {
-        const response = await apiClient.patch(API_ENDPOINTS.petTransfer(id), { newOwnerId: newOwnerId });
-        return response.data;
+        return await apiClient.patch(API_ENDPOINTS.petTransfer(id), {newOwnerId: newOwnerId});
     },
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/authContext';
 import { useNavigate } from 'react-router-dom';
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,8 @@ import { partyApi } from '@/api/partyApi';
 export default function CreatePlaydate() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, setUser } = useAuth();
+  const [pets, setPets] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     location: '',
@@ -22,17 +25,12 @@ export default function CreatePlaydate() {
     petId: '',
     description: '',
   });
-  const [pets, setPets] = useState([]);
 
   useEffect(() => {
     const loadPets = async () => {
       try {
-        const profile = localStorage.getItem('profile');
-        if (!profile) throw new Error('User profile not found');
-        const { id: userId } = JSON.parse(profile);
-
-        const response = await petApi.getByOwner(userId);
-        setPets(response.pets);
+        const response = await petApi.getByOwner(user.id);
+        setPets(response.data.pets);
       } catch (err) {
         console.error("Failed to fetch pets:", err);
       }
@@ -43,25 +41,7 @@ export default function CreatePlaydate() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // const storedPlaydates = localStorage.getItem('playdates');
-    // const playdates = storedPlaydates ? JSON.parse(storedPlaydates) : [];
-    //
-    // const profile = localStorage.getItem('profile');
-    // const userName = profile ? JSON.parse(profile).name : 'Anonymous';
-    //
-    // const newPlaydate = {
-    //   id: Math.random().toString(36).substr(2, 9),
-    //   ...formData,
-    //   attendees: 1,
-    //   hostName: userName,
-    // };
-    //
-    // playdates.push(newPlaydate);
-    // localStorage.setItem('playdates', JSON.stringify(playdates));
 
-    // Get user id
-    // Get user's pets' ids
     // Post playdate
     // Add pets to playdate
     try {
@@ -71,7 +51,7 @@ export default function CreatePlaydate() {
         date: `${formData.date}T${formData.time}`,
         description: formData.description,
       });
-      const partyId = createPartyResponse.id;
+      const partyId = createPartyResponse.data.id;
       console.log('Created playdate with ID:', partyId);
 
       // Add selected pet to the created playdate
