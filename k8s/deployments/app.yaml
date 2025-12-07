@@ -20,8 +20,8 @@ spec:
 #          command: ['sh', '-c', 'until nc -z postgres.default.svc.cluster.local 5432; do echo waiting for postgres; sleep 2; done;']
       containers:
         - name: app
-          image: app-app-service:latest
-          imagePullPolicy: Never
+          image: danwonger/app-app-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 4001
               name: http
