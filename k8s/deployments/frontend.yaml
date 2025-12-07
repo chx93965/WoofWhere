@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: frontend-web:latest
-          imagePullPolicy: Never
+          image: danwonger/frontend-web:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
               name: http
