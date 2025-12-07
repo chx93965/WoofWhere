@@ -5,8 +5,8 @@ export const partyApi = {
     getAll: async (params) => {
         return await apiClient.get(API_ENDPOINTS.parties, {params});
     },
-    getById: async (id) => {
-        return await apiClient.get(API_ENDPOINTS.partyById(id));
+    getById: async (id, params) => {
+        return await apiClient.get(API_ENDPOINTS.partyById(id), {params});
     },
     create: async (data) => {
         return await apiClient.post(API_ENDPOINTS.partyCreate, data);

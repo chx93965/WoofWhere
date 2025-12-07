@@ -67,7 +67,6 @@ export default function Profile() {
 
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     // Update user
     try {
       console.log("Updating user with data:", userForm);
@@ -96,7 +95,6 @@ export default function Profile() {
 
   const handlePetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     // Post pet
     try {
       const response = await petApi.create({

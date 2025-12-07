@@ -5,8 +5,8 @@ export const petApi = {
     getAll: async (params) => {
         return await apiClient.get(API_ENDPOINTS.pets, {params});
     },
-    getById: async (params) => {
-        return await apiClient.get(API_ENDPOINTS.petById(id));
+    getById: async (id, params) => {
+        return await apiClient.get(API_ENDPOINTS.petById(id), {params});
     },
     create: async (data) => {
         return await apiClient.post(API_ENDPOINTS.petCreate, data);

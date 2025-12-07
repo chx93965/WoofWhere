@@ -16,6 +16,7 @@ export default function CreatePlaydate() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, setUser } = useAuth();
+  const [pets, setPets] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     location: '',
@@ -24,7 +25,6 @@ export default function CreatePlaydate() {
     petId: '',
     description: '',
   });
-  const [pets, setPets] = useState([]);
 
   useEffect(() => {
     const loadPets = async () => {
