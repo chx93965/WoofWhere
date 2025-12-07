@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - pet_profile_update
   pull_request:
     branches:
       - main
@@ -124,8 +123,8 @@ jobs:
 
       - name: Run smoke tests
         run: |
-          kubectl port-forward svc/frontend-service 8001:80 &
-          sleep 5
+#          kubectl port-forward svc/frontend-service 8001:8001 &
+#          sleep 5
           curl -f http://localhost:8001 || exit 1
 
 #  # Job 4: Deploy to Digital Ocean

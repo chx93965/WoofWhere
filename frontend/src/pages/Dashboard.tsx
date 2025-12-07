@@ -92,7 +92,7 @@ export default function Dashboard() {
     // }
     const loadPlaydates = async () => {
       const partyData = await partyApi.getAll({ includePets: true });
-      const formattedPlaydates = partyData.parties.map((p: any) => {
+      const formattedPlaydates = partyData.data.parties.map((p: any) => {
         const dateObj = new Date(p.date);
         return {
             id: p.id,

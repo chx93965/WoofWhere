@@ -107,8 +107,8 @@ export default function Profile() {
         ownerId: user.id
       });
 
-      localStorage.setItem('pet', JSON.stringify({...petForm, id: response.id}));
-      console.log('Pet added with ID:', response.id);
+      localStorage.setItem('pet', JSON.stringify({...petForm, id: response.data.id}));
+      console.log('Pet added with ID:', response.data.id);
       toast({
         title: 'Pet Profile Updated',
         description: `${petForm.name}'s profile has been saved successfully.`,
