@@ -4,13 +4,10 @@ on:
   push:
     branches:
       - main
-      # TODO: remove in production
-      - pipeline_modification
+      - pet_profile_update
   pull_request:
     branches:
       - main
-      # TODO: remove in production
-      - pipeline_modification
 
 env:
   REGISTRY: docker.io
@@ -129,7 +126,7 @@ jobs:
         run: |
           kubectl port-forward svc/frontend-service 8001:80 &
           sleep 5
-          curl -f http://localhost:8001/api/user || exit 1
+          curl -f http://localhost:8001 || exit 1
 
 #  # Job 4: Deploy to Digital Ocean
 #  deploy-production:

@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 
-
 interface User {
   id: string;
   name: string;
@@ -47,7 +46,7 @@ export default function Dashboard() {
   useEffect(() => {
     const loadUsers = async () => {
       const userData = await userApi.getAll();
-      const formattedUsers = userData.users.map((u: any) => {
+      const formattedUsers = userData.data.users.map((u: any) => {
         return {
           id: u.id,
           name: u.name,
