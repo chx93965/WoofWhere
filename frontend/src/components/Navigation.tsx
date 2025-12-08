@@ -60,7 +60,7 @@ export const Navigation = () => {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <span className="font-mono font-bold text-lg text-amber-950">Hi, {user.name}</span>
+              <span className="text-l font-bold text-black">Hi, {user.name}</span>
               <span></span>
               <Button
                 variant={'link'}
