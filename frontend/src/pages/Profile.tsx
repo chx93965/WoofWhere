@@ -42,18 +42,21 @@ export default function Profile() {
       }
   }, [user, navigate]);
 
+  if (!user) {
+    return null;
+  }
 
   const [userForm, setUserForm] = useState<Profile>({
     id: '',
     name: '',
     email: '',
-    age: 0,
+    age: undefined,
   });
   const [petForm, setPetForm] = useState<Pet>({
     id: '',
     name: '',
     breed: '',
-    age: 0,
+    age: undefined,
     size: 'medium',
   });
 
@@ -179,7 +182,7 @@ export default function Profile() {
                             min="0"
                             max="150"
                             value={userForm.age}
-                            placeholder={user.name? user.name : 0}
+                            placeholder={user.age? user.age : 0}
                             onChange={(e) => setUserForm({ ...userForm, age: parseInt(e.target.value) })}
                         />
                       </div>
@@ -250,16 +253,16 @@ export default function Profile() {
                 </Card>
               </TabsContent>
               <TabsContent value="chat">
-  <Card>
-    <CardHeader>
-      <CardTitle>Chat</CardTitle>
-      <CardDescription>Send and receive messages in real time</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <ChatSection />
-    </CardContent>
-  </Card>
-</TabsContent>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Chat</CardTitle>
+                    <CardDescription>Send and receive messages in real time</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ChatSection />
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </main>
         )}
