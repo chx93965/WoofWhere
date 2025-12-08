@@ -149,15 +149,14 @@ jobs:
 
       - name: Deploy to DigitalOcean
         run: |
-          kubectl get svc
-#          Deploy Postgres
-#          kubectl apply -f k8s/secrets/postgres-secret.yaml
-#          kubectl apply -f k8s/configmaps/postgres-config.yaml
-#          kubectl apply -f k8s/volumes/postgres-volume.yaml
-#          kubectl apply -f k8s/volumes/postgres-claim.yaml
-#          kubectl apply -f k8s/deployments/postgres.yaml
-#          kubectl apply -f k8s/services/postgres-service.yaml
-#          kubectl wait --for=condition=ready pod -l app=postgres --timeout=120s
+          Deploy Postgres
+          kubectl apply -f k8s/secrets/postgres-secret.yaml
+          kubectl apply -f k8s/configmaps/postgres-config.yaml
+          kubectl apply -f k8s/volumes/postgres-volume.yaml
+          kubectl apply -f k8s/volumes/postgres-claim.yaml
+          kubectl apply -f k8s/deployments/postgres.yaml
+          kubectl apply -f k8s/services/postgres-service.yaml
+          kubectl wait --for=condition=ready pod -l app=postgres --timeout=120s
 #
 #          # Deploy backend app
 ##          kubectl set image deployment/app app=${{ env.BACKEND_IMAGE }}:${{ env.IMAGE_TAG }} || \
