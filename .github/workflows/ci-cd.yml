@@ -142,6 +142,7 @@ jobs:
         uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          install: true
 
       - name: Setup kubectl for DigitalOcean
         run: |
