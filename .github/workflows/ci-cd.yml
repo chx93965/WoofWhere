@@ -10,7 +10,6 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_TAG: ${{ github.sha }}
   BACKEND_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/app-app-service
   FRONTEND_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/frontend-web
 
@@ -41,11 +40,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ env.BACKEND_IMAGE }}:${{ env.IMAGE_TAG }} ./backend/App
+          docker build -t ${{ env.BACKEND_IMAGE }}:latest ./backend/App
 
       - name: Push Docker image
         run: |
-          docker push ${{ env.BACKEND_IMAGE }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.BACKEND_IMAGE }}:latest
 
   # Job 2: Build Frontend
   build-frontend:
@@ -77,12 +76,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ env.FRONTEND_IMAGE }}:${{ env.IMAGE_TAG }} ./frontend
+          docker build -t ${{ env.FRONTEND_IMAGE }}:latest ./frontend
 
       - name: Push Docker image
         run: |
-          docker push ${{ env.FRONTEND_IMAGE }}:${{ env.IMAGE_TAG }}
-          docker push ${{ env.FRONTEND_IMAGE }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.FRONTEND_IMAGE }}:latest
 
   # Job 3: Deploy to Minikube
   deploy-minikube:
@@ -165,6 +163,9 @@ jobs:
           kubectl apply -f k8s/deployments/frontend.yaml
           kubectl apply -f k8s/services/frontend-service.yaml
           kubectl wait --for=condition=ready pod -l app=frontend --timeout=120s
+          
+          kubectl rollout restart deployment/app
+          kubectl rollout restart deployment/frontend
 
       - name: Verify deployment
         run: |
