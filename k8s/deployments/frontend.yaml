@@ -24,3 +24,5 @@ spec:
           env:
             - name: VITE_API_URL
               value: "http://app-service.default.svc.cluster.local:4001"
+            - name: VITE_MAPBOX_ACCESS_TOKEN
+              value: "pk.eyJ1IjoidGFudml3b29md2hlcmUiLCJhIjoiY21odHQydmw4MDJ4YTJqcGpveWJwdXA0NCJ9.UJsNRn75p8UnJwTTKxB46Q"
