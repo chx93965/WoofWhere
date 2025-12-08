@@ -84,22 +84,74 @@ jobs:
           docker push ${{ env.FRONTEND_IMAGE }}:${IMAGE_TAG}
           docker push ${{ env.FRONTEND_IMAGE }}:${IMAGE_TAG}
 
-  # Job 3: Deploy to Minikube
-  deploy-minikube:
+#  # Job 3: Deploy to Minikube
+#  deploy-minikube:
+#    needs: [build-backend, build-frontend]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Start Minikube
+#        uses: medyagh/setup-minikube@latest
+#        with:
+#          driver: docker
+#          kubernetes-version: v1.28.0
+#
+#      - name: Deploy Database
+#        run: |
+#          kubectl apply -f k8s/secrets/postgres-secret.yaml
+#          kubectl apply -f k8s/configmaps/postgres-config.yaml
+#          kubectl apply -f k8s/volumes/postgres-volume.yaml
+#          kubectl apply -f k8s/volumes/postgres-claim.yaml
+#          kubectl apply -f k8s/deployments/postgres.yaml
+#          kubectl apply -f k8s/services/postgres-service.yaml
+#          kubectl wait --for=condition=ready pod -l app=postgres --timeout=120s
+#
+#      - name: Deploy Backend
+#        run: |
+#          kubectl apply -f k8s/secrets/app-secret.yaml
+#          kubectl apply -f k8s/deployments/app.yaml
+#          kubectl apply -f k8s/services/app-service.yaml
+#          kubectl wait --for=condition=ready pod -l app=app --timeout=180s
+#
+#      - name: Deploy Frontend
+#        run: |
+#          kubectl apply -f k8s/deployments/frontend.yaml
+#          kubectl apply -f k8s/services/frontend-service.yaml
+#          kubectl wait --for=condition=ready pod -l app=frontend --timeout=120s
+#
+#      - name: Run smoke tests
+#        run: |
+#          kubectl port-forward svc/frontend-service 8001:8001 &
+#          sleep 5
+#          curl -f http://localhost:8001 || exit 1
+
+  # Job 4: Deploy to Digital Ocean
+  deploy-production:
     needs: [build-backend, build-frontend]
     runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://example.com
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Start Minikube
-        uses: medyagh/setup-minikube@latest
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
         with:
-          driver: docker
-          kubernetes-version: v1.28.0
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
-      - name: Deploy Database
+      - name: Setup kubectl for DigitalOcean
         run: |
+          doctl kubernetes cluster kubeconfig save ${{ secrets.DIGITALOCEAN_CLUSTER_NAME }}
+
+      - name: Deploy to DigitalOcean
+        run: |
+          kubectl apply -f k8s/secrets/
+
+          # Deploy Postgres
           kubectl apply -f k8s/secrets/postgres-secret.yaml
           kubectl apply -f k8s/configmaps/postgres-config.yaml
           kubectl apply -f k8s/volumes/postgres-volume.yaml
@@ -108,85 +160,31 @@ jobs:
           kubectl apply -f k8s/services/postgres-service.yaml
           kubectl wait --for=condition=ready pod -l app=postgres --timeout=120s
 
-      - name: Deploy Backend
-        run: |
+          # Deploy backend app
+#          kubectl set image deployment/app app=${{ env.BACKEND_IMAGE }}:${IMAGE_TAG} || \
           kubectl apply -f k8s/secrets/app-secret.yaml
           kubectl apply -f k8s/deployments/app.yaml
           kubectl apply -f k8s/services/app-service.yaml
           kubectl wait --for=condition=ready pod -l app=app --timeout=180s
 
-      - name: Deploy Frontend
-        run: |
+          # Deploy frontend app
+#          kubectl set image deployment/frontend frontend=${{ env.FRONTEND_IMAGE }}:${IMAGE_TAG} || \
           kubectl apply -f k8s/deployments/frontend.yaml
           kubectl apply -f k8s/services/frontend-service.yaml
           kubectl wait --for=condition=ready pod -l app=frontend --timeout=120s
 
-      - name: Run smoke tests
+      - name: Verify deployment
         run: |
-          kubectl port-forward svc/frontend-service 8001:8001 &
-          sleep 5
-          curl -f http://localhost:8001 || exit 1
+          kubectl get pods
+          kubectl get svc
 
-#  # Job 4: Deploy to Digital Ocean
-#  deploy-production:
-#    needs: [build-backend, build-frontend]
-#    runs-on: ubuntu-latest
-#    if: github.ref == 'refs/heads/main'
-#    environment:
-#      name: production
-#      url: https://your-app.com
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v4
-#
-#      - name: Install doctl
-#        uses: digitalocean/action-doctl@v2
-#        with:
-#          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-#
-#      - name: Setup kubectl for DigitalOcean
-#        run: |
-#          doctl kubernetes cluster kubeconfig save ${{ secrets.DO_CLUSTER_NAME }}
-#
-#      - name: Deploy to DigitalOcean
-#        run: |
-#          # Create namespace if not exists
-#          kubectl create namespace microservices || true
-#
-#          # Apply secrets (use DO secrets if different)
-#          kubectl apply -f k8s/namespace.yaml
-#          kubectl apply -f k8s/secrets/
-#
-#          # Deploy database
-#          kubectl apply -f database/postgres/
-#          kubectl wait --for=condition=ready pod -l app=postgres -n microservices --timeout=180s
-#
-#          # Deploy backend with new image
-#          kubectl set image deployment/app app=${{ env.BACKEND_IMAGE }}:${{ github.sha }} -n microservices || \
-#            kubectl apply -f k8s/deployments/app.yaml
-#          kubectl apply -f k8s/services/app-service.yaml
-#          kubectl wait --for=condition=ready pod -l app=app -n microservices --timeout=120s
-#
-#          # Deploy frontend with new image
-#          kubectl set image deployment/frontend frontend=${{ env.FRONTEND_IMAGE }}:${{ github.sha }} -n microservices || \
-#            kubectl apply -f k8s/deployments/frontend.yaml
-#          kubectl apply -f k8s/services/frontend-service.yaml
-#          kubectl wait --for=condition=ready pod -l app=frontend -n microservices --timeout=60s
-#
-#          # Apply ingress if exists
-#          kubectl apply -f k8s/ingress.yaml || echo "No ingress configured"
-#
-#      - name: Verify deployment
-#        run: |
-#          kubectl get pods -n microservices
-#          kubectl get svc -n microservices
-#
 #      - name: Rollback on failure
 #        if: failure()
 #        run: |
-#          kubectl rollout undo deployment/app -n microservices
-#          kubectl rollout undo deployment/frontend -n microservices
+#          kubectl rollout undo deployment/frontend
+#          kubectl rollout undo deployment/app
 #
+
 #  # Job 5: Notify deployment status
 #  notify:
 #    needs: [deploy-production]
