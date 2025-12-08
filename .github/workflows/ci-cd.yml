@@ -156,24 +156,20 @@ jobs:
           kubectl apply -f k8s/deployments/postgres.yaml
           kubectl apply -f k8s/services/postgres-service.yaml
           kubectl wait --for=condition=ready pod -l app=postgres --timeout=120s
-#
-#          # Deploy backend app
-##          kubectl set image deployment/app app=${{ env.BACKEND_IMAGE }}:${{ env.IMAGE_TAG }} || \
-#          kubectl apply -f k8s/secrets/app-secret.yaml
-#          kubectl apply -f k8s/deployments/app.yaml
-#          kubectl apply -f k8s/services/app-service.yaml
-#          kubectl wait --for=condition=ready pod -l app=app --timeout=180s
-#
-#          # Deploy frontend app
-##          kubectl set image deployment/frontend frontend=${{ env.FRONTEND_IMAGE }}:${{ env.IMAGE_TAG }} || \
-#          kubectl apply -f k8s/deployments/frontend.yaml
-#          kubectl apply -f k8s/services/frontend-service.yaml
-#          kubectl wait --for=condition=ready pod -l app=frontend --timeout=120s
-#
-#      - name: Verify deployment
-#        run: |
-#          kubectl get pods
-#          kubectl get svc
+
+          kubectl apply -f k8s/secrets/app-secret.yaml
+          kubectl apply -f k8s/deployments/app.yaml
+          kubectl apply -f k8s/services/app-service.yaml
+          kubectl wait --for=condition=ready pod -l app=app --timeout=180s
+
+          kubectl apply -f k8s/deployments/frontend.yaml
+          kubectl apply -f k8s/services/frontend-service.yaml
+          kubectl wait --for=condition=ready pod -l app=frontend --timeout=120s
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods
+          kubectl get svc
 #
 #      - name: Rollback on failure
 #        if: failure()
