@@ -149,7 +149,6 @@ jobs:
 
       - name: Deploy to DigitalOcean
         run: |
-#          Deploy Postgres
           kubectl apply -f k8s/secrets/postgres-secret.yaml
           kubectl apply -f k8s/configmaps/postgres-config.yaml
           kubectl apply -f k8s/volumes/postgres-volume.yaml
