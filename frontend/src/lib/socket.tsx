@@ -18,7 +18,11 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     };
   }, []);
 
-  return <SocketContext.Provider value={{ socket }}>{children}</SocketContext.Provider>;
+  return (
+    <SocketContext.Provider value={{ socket }}>
+      {children}
+    </SocketContext.Provider>
+  );
 };
 
 export const useSocket = () => useContext(SocketContext);
