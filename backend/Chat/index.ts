@@ -3,16 +3,11 @@ import http from "http";
 import { Server as IOServer } from "socket.io";
 import dotenv from "dotenv";
 import cors from "cors";
-import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
 const PORT = Number(process.env.PORT || 4000);
-const SUPABASE_URL = process.env.SUPABASE_URL!;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const app = express();
 app.use(cors({ origin: CORS_ORIGIN }));
@@ -20,47 +15,36 @@ app.use(cors({ origin: CORS_ORIGIN }));
 const server = http.createServer(app);
 const io = new IOServer(server, { cors: { origin: CORS_ORIGIN } });
 
-// Track online users
-let onlineUsers: Record<string, string> = {};
+// Track online users with all info
+interface OnlineUser {
+  id: string;
+  username: string;
+  displayName: string;
+}
+let onlineUsers: Record<string, OnlineUser> = {};
+let messages: any[] = [];
 
 io.on("connection", (socket) => {
-  console.log("Connected:", socket.id);
-
-  socket.on("join_chat", async ({ username }) => {
-    onlineUsers[socket.id] = username;
-
-    // Send online users
+  socket.on("join_chat", ({ id, username, displayName }) => {
+    onlineUsers[socket.id] = { id, username, displayName };
     io.emit("online_users", Object.values(onlineUsers));
-
-    // Send message history
-    const { data, error } = await supabase
-      .from("messages")
-      .select("*")
-      .order("created_at", { ascending: true })
-      .limit(200);
-
-    if (error) console.error("Error fetching messages:", error);
-    else socket.emit("message_history", data || []);
+    socket.emit("message_history", messages.slice(-100));
   });
 
-  socket.on("send_message", async ({ sender, recipient, content }) => {
+  socket.on("send_message", ({ sender, recipient, content }) => {
     const message = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       sender,
       recipient: recipient || "",
       content,
-      created_at: new Date().toISOString(),
+      created_at: new Date().toISOString()
     };
+    messages.push(message);
+    if (messages.length > 100) messages.shift();
 
-    // Save to Supabase
-    const { error } = await supabase.from("messages").insert(message);
-    if (error) console.error("SUPABASE INSERT ERROR:", error);
-
-    // Emit to all users (global chat) or specific recipient
     if (recipient) {
-      // Private message
-      for (const [socketId, username] of Object.entries(onlineUsers)) {
-        if (username === sender || username === recipient) {
+      for (const [socketId, user] of Object.entries(onlineUsers)) {
+        if (user.username === sender || user.username === recipient) {
           io.to(socketId).emit("new_message", message);
         }
       }
@@ -76,5 +60,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`Chat server listening on http://localhost:${PORT}`);
 });

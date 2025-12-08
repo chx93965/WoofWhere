@@ -24,12 +24,46 @@ export default function Map() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
-  // Load playdates from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem('playdates');
-    if (stored) {
-      setPlaydates(JSON.parse(stored));
+  // Function to geocode a location string to coordinates
+  async function geocodeLocation(location: string): Promise<[number, number] | null> {
+    try {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+        location
+      )}.json?access_token=${mapboxgl.accessToken}`;
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.features?.length > 0) {
+        return data.features[0].center; // [lng, lat]
+      }
+    } catch (err) {
+      console.error("Geocoding error:", err);
     }
+    return null;
+  }
+
+  // Load playdates from localStorage and geocode missing coordinates
+  useEffect(() => {
+    async function loadPlaydates() {
+      const stored = localStorage.getItem("playdates");
+      if (!stored) return;
+
+      let parsed: Playdate[] = JSON.parse(stored);
+
+      // Fill missing coordinates
+      for (const p of parsed) {
+        if (!p.coordinates) {
+          const coords = await geocodeLocation(p.location);
+          if (coords) p.coordinates = coords;
+        }
+      }
+
+      localStorage.setItem("playdates", JSON.stringify(parsed));
+      setPlaydates(parsed);
+    }
+
+    loadPlaydates();
   }, []);
 
   // Initialize Mapbox map
@@ -39,47 +73,35 @@ export default function Map() {
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: "mapbox://styles/mapbox/streets-v11",
-      center: [-79.3832, 43.6532], // 
+      center: [-79.3832, 43.6532], // Toronto default
       zoom: 11,
     });
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
     mapRef.current = map;
 
-    // Add a few sample paw markers in Toronto
-    const pawIconUrl = "https://cdn-icons-png.flaticon.com/512/616/616408.png"; 
-
-    const pawLocations: [number, number][] = [
-      [-79.3832, 43.6532], 
-      [-79.4000, 43.6650], 
-      [-79.3700, 43.6400], 
-    ];
-
-    pawLocations.forEach(([lng, lat]) => {
-      const el = document.createElement("div");
-      el.style.backgroundImage = `url(${pawIconUrl})`;
-      el.style.width = "32px";
-      el.style.height = "32px";
-      el.style.backgroundSize = "contain";
-      el.style.backgroundRepeat = "no-repeat";
-      el.style.cursor = "pointer";
-
-      new mapboxgl.Marker(el).setLngLat([lng, lat]).addTo(map);
-    });
-
     return () => map.remove();
   }, []);
 
-  // Add markers for stored playdates (if they exist)
+  // Add markers for playdates (once coordinates are ready)
   useEffect(() => {
     if (!mapRef.current) return;
 
     const map = mapRef.current;
     const markers: mapboxgl.Marker[] = [];
+    const pawIconUrl = "https://cdn-icons-png.flaticon.com/512/616/616408.png";
 
     playdates.forEach((p) => {
       if (p.coordinates) {
-        const marker = new mapboxgl.Marker({ color: "#2563eb" })
+        const el = document.createElement("div");
+        el.style.backgroundImage = `url(${pawIconUrl})`;
+        el.style.width = "32px";
+        el.style.height = "32px";
+        el.style.backgroundSize = "contain";
+        el.style.backgroundRepeat = "no-repeat";
+        el.style.cursor = "pointer";
+
+        const marker = new mapboxgl.Marker(el)
           .setLngLat(p.coordinates)
           .setPopup(
             new mapboxgl.Popup({ offset: 25 }).setHTML(`
@@ -90,6 +112,7 @@ export default function Map() {
             `)
           )
           .addTo(map);
+
         markers.push(marker);
       }
     });
@@ -110,10 +133,7 @@ export default function Map() {
           <div className="lg:col-span-2">
             <Card className="h-[600px] overflow-hidden bg-muted/50 relative">
               <CardContent className="p-0 h-full">
-                <div
-                  ref={mapContainerRef}
-                  className="w-full h-full rounded-2xl"
-                />
+                <div ref={mapContainerRef} className="w-full h-full rounded-2xl" />
               </CardContent>
             </Card>
           </div>
