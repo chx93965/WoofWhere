@@ -10,6 +10,7 @@ on:
 
 env:
   REGISTRY: docker.io
+  BACKEND_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/app-app-service
   FRONTEND_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/frontend-web
 
 jobs:
