@@ -1,943 +1,1260 @@
-# WolfWhere
+# Final Report: Woofwhere
 
-## Infrastructure Overview
+## Table of Contents
+- [Team Information](#team-information)
+- [The Problem](#the-problem)
+- [Motivation](#motivation)
+- [Objectives](#objectives)
+- [Technical Stack](#technical-stack)
+- [Features](#features)
+- [User Guide](#user-guide)
+- [Development Guide](#development-guide)
+- [Deployment Information](#deployment-information)
+- [Video Demo](./demo.mp4)
+- [Individual Contributions](#individual-contributions)
+- [Concluding Remarks](#lessons-learned-and-concluding-remarks)
 
-**Total VMs:** 3
-- **VM #1:** Kubernetes Worker Node 1
-- **VM #2:** Kubernetes Worker Node 2
-- **VM #3:** Combined Database Server
+## Team Information
 
-## 1. User Profile CRUD Operations
+| Name | Email | Student Number | Github Username |
+| --- | --- | --- | --- |
+| Daniel Wong | [daniell.wong@mail.utoronto.ca](mailto:daniell.wong@mail.utoronto.ca) | 1005116866 | [**danwonger**](https://github.com/danwonger) |
+| Hanxiao Chang | [hanxiao.chang@mail.utoronto.ca](mailto:hanxiao.chang@mail.utoronto.ca) | 1006341709 | [**chx93965**](https://github.com/chx93965) |
+| Tanvi Virappa Patil | [tanvi.patil@mail.utoronto.ca](mailto:tanvi.patil@mail.utoronto.ca) | 1011076096 | [**TanviVVCE**](https://github.com/TanviVVCE) |
 
-### 1.1 CREATE - User Registration
+## The Problem
 
-**Endpoint:** `POST /api/users`
+- Dog ownership naturally encourages social interaction among pets and their owners, yet maintaining these connections beyond the first meeting remains challenging. Most dog owners struggle to organize repeat playdates because there is no convenient and privacy-respecting way to reconnect after initial encounters.
+- Existing social platforms are not designed for short, location-based interactions and often require sharing personal information, which many owners find uncomfortable. As a result, even when dogs get along, owners lose contact. Busy schedules and conflicting routines further complicate coordination, causing potential friendships and play opportunities to fade.
+- This gap limits socialization and exercise for dogs and reduces opportunities for owners to build community connections. There is currently no dedicated platform that balances accessibility, safety, and trust while allowing dog owners to easily maintain relationships formed through shared pet interactions.
 
-**Flow Steps:**
+## Motivation
 
-1. **Frontend**
-   - User fills registration form: username, email, password, optional location
-   - Action: POST /api/users
+- This project is motivated by a real and relatable need to help dog owners and their pets sustain meaningful connections in a safe, convenient, and privacy-conscious way. In increasingly urbanized and digitally dependent environments, such a solution promotes both community building and pet well-being.
+- It also serves as a practical opportunity to apply cloud computing concepts to a real-world social issue. By using technologies such as Docker, PostgreSQL, Redis, and Kubernetes and Digital Ocean, the project demonstrates how containerized, privacy-first systems can support genuine, local human interaction.
+- The project merges social impact with technical innovation, demonstrating how cloud-based design can enhance both community engagement and quality of life for dog owners and their pets.
 
-2. **API Gateway**
-   - Route to User Service (no auth required)
-   - Forward request
-
-3. **User Service**
-   - Validate input data:
-     - Email format validation
-     - Username: 3-30 chars, alphanumeric
-     - Password: 8+ chars with uppercase & number
-   - Check if user exists
-
-4. **PostgreSQL**
-   - Query: `SELECT id FROM users WHERE email=$1 OR username=$2`
-   - Return 409 if exists
-
-5. **User Service**
-   - Hash password with bcrypt (10 salt rounds)
-   - `bcrypt.hash(password, 10)`
-
-6. **PostgreSQL**
-   - Insert into users table:
-   ```sql
-   INSERT INTO users (username, email, password_hash, location, role, created_at)
-   VALUES ($1, $2, $3, ST_SetSRID(ST_MakePoint($4, $5), 4326), 'user', NOW())
-   RETURNING id, username, email
-   ```
-
-7. **User Service**
-   - Generate JWT token
-   - `jwt.sign({userId, role}, SECRET, {expiresIn: "7d"})`
-
-8. **Redis**
-   - Store session: `SETEX session:123 604800 "jwt-token"` (7 day TTL)
-
-9. **User Service**
-   - Return response: `{ userId: 123, token: "jwt...", username: "john" }`
-
-10. **Frontend**
-    - Save token to localStorage
-    - Redirect to dashboard
-
----
-
-### 1.2 READ - Get User Profile
-
-**Endpoint:** `GET /api/users/:id`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - Request user profile with Authorization header
-   - `GET /api/users/123` with `Authorization: Bearer jwt-token`
-
-2. **API Gateway**
-   - Validate JWT token: `jwt.verify(token, SECRET)`
-   - Extract userId from token
-
-3. **Redis**
-   - Validate session exists: `GET session:123`
-   - Return token or NULL
-
-4. **User Service**
-   - Check cache first: `GET user:123` from Redis
-
-5. **Redis**
-   - Cache miss (key not found or expired)
-
-6. **PostgreSQL**
-   - Complex JOIN query:
-   ```sql
-   SELECT u.*, COUNT(p.id) as pet_count
-   FROM users u
-   LEFT JOIN pets p ON u.id = p.owner_id
-   WHERE u.id = $1
-   GROUP BY u.id
-   ```
-
-7. **User Service**
-   - Cache result: `SETEX user:123 300 {...}` (5 min TTL)
-
-8. **Frontend**
-   - Display profile: username, bio, location on map, pet count
-
----
-
-### 1.3 UPDATE - Edit User Profile
-
-**Endpoint:** `PUT /api/users/:id`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - User edits profile form: bio, location, profile picture
-   - `PUT /api/users/123` with multipart/form-data
-
-2. **API Gateway**
-   - Validate JWT & authorization
-   - Check token userId matches :id param (RBAC)
-
-3. **User Service**
-   - Handle file upload: `multer.single("avatar")`
-   - Validate type (jpg/png) & size (<5MB)
-
-4. **Spaces (DigitalOcean Object Storage)**
-   - Upload to bucket:
-   ```javascript
-   s3.upload({
-     Bucket: 'dog-playdate-media',
-     Key: 'profiles/123/timestamp.jpg',
-     ACL: 'public-read'
-   })
-   ```
-   - Return CDN URL
-
-5. **User Service**
-   - Delete old profile picture from Spaces
-
-6. **PostgreSQL**
-   - Update users table:
-   ```sql
-   UPDATE users 
-   SET bio=$1, location=$2, user_profile_pic_url=$3 
-   WHERE id=$4
-   ```
-
-7. **Redis**
-   - Invalidate cache: `DEL user:123`
-
-8. **Redis**
-   - Publish event:
-   ```json
-   PUBLISH user-events {
-     "type": "UserUpdated",
-     "userId": 123,
-     "changes": ["bio", "location"]
-   }
-   ```
-
-9. **Frontend**
-   - Show success message, refresh profile display
-
----
-
-### 1.4 DELETE - Delete User Account
-
-**Endpoint:** `DELETE /api/users/:id`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - User confirms deletion
-   - Warning: "This will delete all pets, playdates, messages"
-
-2. **API Gateway**
-   - Validate JWT & authorization
-
-3. **User Service**
-   - Check active dependencies (playdates, messages)
-
-4. **PostgreSQL**
-   - Begin CASCADE delete transaction:
-   ```sql
-   BEGIN;
-   DELETE FROM user_sessions WHERE user_id = $1;
-   DELETE FROM playdate_participants WHERE user_id = $1;
-   DELETE FROM pets WHERE owner_id = $1;
-   DELETE FROM messages WHERE sender_id = $1 OR recipient_id = $1;
-   DELETE FROM users WHERE id = $1;
-   COMMIT;
-   ```
-
-5. **Spaces**
-   - Delete all user media: `profiles/123/*, pets/owner_123/*`
-
-6. **Redis**
-   - Purge all user data:
-   ```
-   DEL user:123
-   DEL session:123
-   DEL nearby:*
-   SREM online_users 123
-   ```
-
-7. **Frontend**
-   - Clear localStorage
-   - Redirect to homepage with farewell message
-
----
-
-## 2. Pet Profile CRUD Operations
-
-### 2.1 CREATE - Add New Pet
-
-**Endpoint:** `POST /api/pets`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - User fills pet form: name, breed, age (months), size, gender, intro, photo
-   - `POST /api/pets` with multipart/form-data
-
-2. **API Gateway**
-   - Validate JWT, extract owner_id from token
-
-3. **Pet Service**
-   - Validate pet data:
-     - Name required
-     - Age: 0-300 months
-     - Size: enum (small/medium/large)
-     - Breed: max 100 chars
-
-4. **Pet Service**
-   - Validate & resize photo using sharp library
-   - Resize to 800x800px
-
-5. **Spaces**
-   - Upload pet photo:
-   ```
-   PUT pets/owner_123/pet_timestamp.jpg
-   Cache-Control: max-age=31536000
-   ```
-
-6. **PostgreSQL**
-   - Insert into pets table:
-   ```sql
-   INSERT INTO pets (
-     owner_id, name, breed, age, size, gender,
-     pet_profile_pic_url, intro, is_active
-   ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
-   RETURNING id
-   ```
-
-7. **Redis**
-   - Invalidate owner cache: `DEL user:123` (pet count changed)
-
-8. **Redis**
-   - Publish event:
-   ```json
-   PUBLISH pet-events {
-     "type": "PetCreated",
-     "petId": 456,
-     "ownerId": 123
-   }
-   ```
-
-9. **Frontend**
-   - Show success toast: "Max added successfully!"
-   - Redirect to `/pets/456`
-
----
-
-### 2.2 READ - Get Pet Profile
-
-**Endpoint:** `GET /api/pets/:id`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - View pet profile with JWT
-
-2. **API Gateway**
-   - Validate authentication
-
-3. **Pet Service**
-   - Check cache: `GET pet:456` from Redis
-
-4. **PostgreSQL**
-   - SELECT with owner JOIN:
-   ```sql
-   SELECT p.*, u.username as owner_name, u.location
-   FROM pets p
-   JOIN users u ON p.owner_id = u.id
-   WHERE p.id = $1 AND p.is_active = true
-   ```
-
-5. **Pet Service**
-   - Calculate age display (convert months to years/months)
-
-6. **Redis**
-   - Cache pet data: `SETEX pet:456 600 {...}` (10 min TTL)
-
-7. **Frontend**
-   - Display pet card: photo, name, breed, age, owner, "Find Matches" button
-
----
-
-### 2.3 UPDATE - Edit Pet Profile
-
-**Endpoint:** `PUT /api/pets/:id`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - User edits pet info: age, intro, photo
-
-2. **API Gateway**
-   - Validate JWT
-
-3. **Pet Service**
-   - Verify ownership:
-   ```sql
-   SELECT owner_id FROM pets WHERE id = 456
-   ```
-   - Compare with JWT userId
-
-4. **Spaces**
-   - Delete old photo, upload new photo
-   - Return new CDN URL
-
-5. **PostgreSQL**
-   - Update pets table:
-   ```sql
-   UPDATE pets 
-   SET age=$1, intro=$2, pet_profile_pic_url=$3 
-   WHERE id=$4
-   ```
-
-6. **Redis**
-   - Clear caches:
-   ```
-   DEL pet:456
-   DEL pet_matches:*
-   DEL nearby_pets:*
-   ```
-
-7. **Redis**
-   - Publish event:
-   ```json
-   PUBLISH pet-events {
-     "type": "PetUpdated",
-     "petId": 456,
-     "changes": ["age", "photo"]
-   }
-   ```
-
-8. **Frontend**
-   - Refresh pet display, show success message
-
----
-
-### 2.4 DELETE - Remove Pet (Soft Delete)
-
-**Endpoint:** `DELETE /api/pets/:id`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - Confirm deletion
-   - Warning: "Pet will be removed from all future playdates"
-
-2. **API Gateway**
-   - Validate JWT & ownership
-
-3. **PostgreSQL**
-   - Check future playdates:
-   ```sql
-   SELECT COUNT(*) 
-   FROM playdate_participants pp
-   JOIN playdates p ON pp.playdate_id = p.id
-   WHERE pp.pet_id = 456 
-   AND p.scheduled_time > NOW()
-   ```
-
-4. **PostgreSQL**
-   - Soft delete:
-   ```sql
-   UPDATE pets 
-   SET is_active = false, deleted_at = NOW() 
-   WHERE id = 456
-   ```
-
-5. **Redis**
-   - Purge caches:
-   ```
-   DEL pet:456
-   DEL pet_matches:*
-   DEL user:owner_id
-   ```
-
-6. **Pet Service**
-   - Queue hard delete job (delete Spaces photos after 30 days)
-
-7. **Frontend**
-   - Remove from UI, show undo option (30-day recovery period)
-
----
-
-## 3. Playdate CRUD Operations
-
-### 3.1 CREATE - Schedule Playdate
-
-**Endpoint:** `POST /api/playdates`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - User creates playdate: title, datetime, map location, invited pets
-   - `POST /api/playdates`
-
-2. **API Gateway**
-   - Validate JWT, extract organizer_id
-
-3. **Playdate Service**
-   - Validate data:
-     - `scheduled_time > NOW()`
-     - Valid coordinates
-     - Max 20 participants
-
-4. **PostgreSQL**
-   - Start transaction and insert:
-   ```sql
-   BEGIN;
-   INSERT INTO playdates (
-     organizer_id, title, scheduled_time, 
-     location, location_name, status
-   ) VALUES ($1, $2, $3, 
-     ST_SetSRID(ST_MakePoint($4, $5), 4326), 
-     $6, 'upcoming'
-   ) RETURNING id;
-   ```
-
-5. **PostgreSQL**
-   - Batch insert participants:
-   ```sql
-   INSERT INTO playdate_participants 
-   (playdate_id, user_id, pet_id, status)
-   VALUES 
-     (789, 123, 456, 'confirmed'),
-     (789, 234, 567, 'confirmed'),
-     ...;
-   COMMIT;
-   ```
-
-6. **Redis**
-   - Publish event:
-   ```json
-   PUBLISH playdate-events {
-     "type": "PlaydateCreated",
-     "playdateId": 789,
-     "participantIds": [123, 456, 789]
-   }
-   ```
-
-7. **Notification Service** (Async subscriber)
-   - Query participant emails
-   - Send via SendGrid
-
-8. **Chat Service** (WebSocket)
-   - Push notification to online participants
-   - "You're invited to a playdate!"
-
-9. **Frontend**
-   - Display playdate card, add to calendar
-
----
-
-### 3.2 READ - View Playdate Details
-
-**Endpoint:** `GET /api/playdates/:id`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - Request playdate details with JWT
-
-2. **API Gateway**
-   - Validate authentication
-
-3. **Playdate Service**
-   - Verify user is participant (privacy check)
-
-4. **PostgreSQL**
-   - Complex JOIN query:
-   ```sql
-   SELECT 
-     p.*,
-     u.username,
-     pet.name,
-     ST_Distance(
-       p.location, 
-       current_user.location
-     ) / 1000 as distance_km
-   FROM playdates p
-   JOIN playdate_participants pp ON p.id = pp.playdate_id
-   JOIN users u ON pp.user_id = u.id
-   JOIN pets ON pp.pet_id = pets.id
-   WHERE p.id = $1
-   ```
-
-5. **PostgreSQL**
-   - Get participant list:
-   ```sql
-   SELECT u.id, u.username, p.id as pet_id, 
-          p.name as pet_name, p.pet_profile_pic_url
-   FROM playdate_participants pp
-   JOIN users u ON pp.user_id = u.id
-   JOIN pets p ON pp.pet_id = p.id
-   WHERE pp.playdate_id = $1
-   ```
-
-6. **Playdate Service**
-   - Add computed fields:
-     - `distance_km`
-     - `time_until_playdate`
-     - `is_organizer`
-     - `can_edit`
-
-7. **Frontend**
-   - Display: map with marker, participant avatars, join/leave button, countdown
-
----
-
-### 3.3 UPDATE - Edit Playdate
-
-**Endpoint:** `PUT /api/playdates/:id`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - Organizer edits: time, location, or participants
-
-2. **API Gateway**
-   - Validate JWT
-
-3. **Playdate Service**
-   - Verify organizer:
-   ```sql
-   SELECT organizer_id 
-   FROM playdates 
-   WHERE id = 789
-   ```
-   - Must match JWT userId
-
-4. **Playdate Service**
-   - Validate changes:
-     - New time in future
-     - Location valid
-     - Not within 2 hours of the event
-
-5. **PostgreSQL**
-   - Update playdate:
-   ```sql
-   UPDATE playdates 
-   SET title=$1, scheduled_time=$2, location=$3 
-   WHERE id=$4
-   ```
-
-6. **Redis**
-   - Publish event (include old & new values):
-   ```json
-   PUBLISH playdate-events {
-     "type": "PlaydateUpdated",
-     "playdateId": 789,
-     "changes": {
-       "scheduled_time": {
-         "old": "2025-01-15 15:00",
-         "new": "2025-01-15 17:00"
-       }
-     },
-     "participantIds": [123, 456, 789]
-   }
-   ```
-
-7. **Notification Service**
-   - Send update emails: "Playdate time changed from 3PM to 5PM"
-   - High priority
-
-8. **Chat Service**
-   - WebSocket push to online users immediately
-
-9. **Frontend**
-   - Update calendar, show "Updated" badge
-
----
-
-### 3.4 DELETE - Cancel Playdate
-
-**Endpoint:** `DELETE /api/playdates/:id`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - Organizer cancels with confirmation
-   - "This will notify all participants"
-
-2. **API Gateway**
-   - Validate JWT & ownership
-
-3. **Playdate Service**
-   - Check cancellation time
-   - If <24hrs before event, send urgent notification
-
-4. **PostgreSQL**
-   - Soft delete (status change):
-   ```sql
-   UPDATE playdates 
-   SET status='cancelled', cancelled_at=NOW() 
-   WHERE id=789;
-   
-   UPDATE playdate_participants 
-   SET status='cancelled' 
-   WHERE playdate_id=789;
-   ```
-
-5. **Redis**
-   - Publish cancellation:
-   ```json
-   PUBLISH playdate-events {
-     "type": "PlaydateCancelled",
-     "playdateId": 789,
-     "reason": "Weather conditions",
-     "participantIds": [123, 456, 789]
-   }
-   ```
-
-6. **Notification Service**
-   - Urgent email blast to all participants
-
-7. **Chat Service**
-   - Push cancellation alert via WebSocket
-
-8. **Frontend**
-   - Remove from calendar or show "Cancelled" badge
-
----
-
-## 4. Chat Message Operations
-
-### 4.1 SETUP - Establish Chat Session
-
-**Endpoint:** `WebSocket wss://api.dogplaydate.com/ws/chat`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - User clicks "Message" button on profile
-   - Create WebSocket connection:
-   ```javascript
-   socket = io("wss://api.dogplaydate.com", {
-     auth: { token: jwt }
-   })
-   ```
-
-2. **Load Balancer**
-   - HTTP → WebSocket protocol upgrade
-   - Route to Chat Service pod
-
-3. **Chat Service**
-   - Authenticate WebSocket in middleware:
-   ```javascript
-   io.use((socket, next) => {
-     const token = socket.handshake.auth.token;
-     jwt.verify(token, SECRET, (err, decoded) => {
-       if (err) return next(new Error('Authentication error'));
-       socket.userId = decoded.userId;
-       next();
-     });
-   });
-   ```
-
-4. **Chat Service**
-   - Join personal room for receiving messages:
-   ```javascript
-   socket.join(`user:${userId}`)
-   ```
-
-5. **Redis**
-   - Add to online users:
-   ```
-   SADD online_users 123
-   ```
-
-6. **Chat Service**
-   - Emit connection success:
-   ```javascript
-   socket.emit('connected', { userId: 123, online: true })
-   ```
-
-7. **PostgreSQL**
-   - Fetch recent message history:
-   ```sql
-   SELECT * FROM messages 
-   WHERE (sender_id=123 AND recipient_id=456) 
-      OR (sender_id=456 AND recipient_id=123)
-   ORDER BY created_at DESC 
-   LIMIT 50
-   ```
-
-8. **Chat Service**
-   - Send message history to client:
-   ```javascript
-   socket.emit('message_history', messages)
-   ```
-
-9. **Frontend**
-   - Display chat interface with history, input box, typing indicator
-
----
-
-### 4.2 SEND - Send Chat Message
-
-**WebSocket Event:** `send_message`
-
-**Flow Steps:**
-
-1. **Frontend**
-   - User types and sends message:
-   ```javascript
-   socket.emit('send_message', {
-     recipientId: 456,
-     text: 'Hello!'
-   })
-   ```
-
-2. **Chat Service**
-   - Validate message:
-     - Text length: 1-1000 chars
-     - Rate limit: 10 messages/minute
-
-3. **PostgreSQL**
-   - Insert message:
-   ```sql
-   INSERT INTO messages 
-   (sender_id, recipient_id, message_text, is_read, created_at)
-   VALUES (123, 456, 'Hello!', false, NOW())
-   RETURNING id
-   ```
-
-4. **Chat Service**
-   - Check recipient online status:
-   ```
-   SISMEMBER online_users 456
-   ```
-
-5. **Redis**
-   - Publish to recipient via Pub/Sub (multi-pod support):
-   ```json
-   PUBLISH chat-messages {
-     "messageId": 789,
-     "senderId": 123,
-     "recipientId": 456,
-     "text": "Hello!"
-   }
-   ```
-
-6. **Chat Service (Other Pod)**
-   - Redis subscriber receives message
-
-7. **Chat Service**
-   - Emit to recipient socket:
-   ```javascript
-   io.to('user:456').emit('new_message', messageData)
-   ```
-
-8. **Frontend (Recipient)**
-   - Display new message
-   - Play notification sound
-   - Show unread badge
-
-9. **Frontend (Sender)**
-   - Show sent confirmation with checkmark
-
----
-
-## Database Schema Reference
-
-### Users Table
-```sql
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    role VARCHAR(10) DEFAULT 'user',
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255),
-    user_profile_pic_url TEXT,
-    created_at TIMESTAMP DEFAULT NOW(),
-    last_login TIMESTAMP,
-    location GEOGRAPHY(POINT, 4326),
-    location_updated_at TIMESTAMP,
-    failed_login_count INTEGER DEFAULT 0
-);
-```
-
-### Pets Table
-```sql
-CREATE TABLE pets (
-    id SERIAL PRIMARY KEY,
-    owner_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    breed VARCHAR(100),
-    age INTEGER,
-    gender VARCHAR(10),
-    size VARCHAR(20),
-    pet_profile_pic_url TEXT,
-    intro TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    deleted_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-### Playdates Table
-```sql
-CREATE TABLE playdates (
-    id SERIAL PRIMARY KEY,
-    organizer_id INTEGER REFERENCES users(id),
-    title VARCHAR(200),
-    scheduled_time TIMESTAMP NOT NULL,
-    location_name VARCHAR(255),
-    location GEOGRAPHY(POINT, 4326) NOT NULL,
-    status VARCHAR(20) DEFAULT 'upcoming',
-    cancelled_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-### Messages Table
-```sql
-CREATE TABLE messages (
-    id SERIAL PRIMARY KEY,
-    sender_id INTEGER REFERENCES users(id),
-    recipient_id INTEGER REFERENCES users(id),
-    message_text TEXT NOT NULL,
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
----
-
-## Redis Data Structures
-
-### Session Storage
-```
-Key: session:{user_id}
-Type: String
-Value: JWT token
-TTL: 604800 seconds (7 days)
-```
-
-### User Cache
-```
-Key: user:{user_id}
-Type: String (JSON)
-Value: {id, username, bio, location, ...}
-TTL: 300 seconds (5 minutes)
-```
-
-### Pet Cache
-```
-Key: pet:{pet_id}
-Type: String (JSON)
-Value: {id, name, breed, age, ...}
-TTL: 600 seconds (10 minutes)
-```
-
-### Online Users
-```
-Key: online_users
-Type: Set
-Members: [user_id_1, user_id_2, ...]
-```
-
-### Event Channels (Pub/Sub)
-```
-Channels:
-- user-events
-- pet-events
-- playdate-events
-- chat-messages
-```
-
----
-
-## API Endpoints Summary
-
-### Authentication
-- `POST /api/auth/register` - Create account
-- `POST /api/auth/login` - Login
-- `POST /api/auth/logout` - Logout
-- `POST /api/auth/oauth/google` - Google SSO
-
-### Users
-- `POST /api/users` - Create user (registration)
-- `GET /api/users/:id` - Get user profile
-- `PUT /api/users/:id` - Update profile
-- `DELETE /api/users/:id` - Delete account
-- `POST /api/users/:id/location` - Update location
-- `GET /api/users/nearby` - Find nearby users
-- `POST /api/users/:id/avatar` - Upload profile picture
-
-### Pets
-- `POST /api/pets` - Create pet profile
-- `GET /api/pets/:id` - Get pet details
-- `PUT /api/pets/:id` - Update pet
-- `DELETE /api/pets/:id` - Soft delete pet
-- `GET /api/pets/owner/:id` - Get owner's pets
-- `GET /api/pets/:id/matches` - Find compatible pets
-
-### Playdates
-- `POST /api/playdates` - Create playdate
-- `GET /api/playdates/:id` - Get playdate details
-- `PUT /api/playdates/:id` - Update playdate
-- `DELETE /api/playdates/:id` - Cancel playdate
-- `GET /api/playdates/nearby` - Find nearby playdates
-- `POST /api/playdates/:id/join` - Join playdate
-- `POST /api/playdates/:id/leave` - Leave playdate
-
-### Chat (WebSocket)
-- `WS /ws/chat` - WebSocket connection
-- `GET /api/messages/:userId` - Get message history
-
----
-
-![class-diagram](./diagrams/class-diagram.png "class-diagram")
-![user-registration-sequence](./diagrams/user-registration-sequence.png "user-registration-sequence")
-![user-update-sequence](./diagrams/user-update-sequence.png "user-update-sequence")
-![pet-create-sequence](./diagrams/pet-create-sequence.png "pet-create-sequence")
-![playdate-create-sequence](./diagrams/playdate-create-sequence.png "playdate-create-sequence")
-![playdate-update-sequence](./diagrams/playdate-update-sequence.png "playdate-update-sequence")
-![chat-session-sequence](./diagrams/chat-session-sequence.png "chat-session-sequence")
-![send-message-sequence](./diagrams/send-message-sequence.png "send-message-sequence")
+### Target Users
+
+- **Dog Owners in Urban/Suburban Areas:**
+    
+    Individuals who want a simple and privacy-friendly way to connect with nearby owners for dog playdates.
+    
+- **New Dog Owners:**
+    
+    Users seeking opportunities for their pets to socialize and learn through safe, local meetups.
+    
+- **Socially Active Pet Owners:**
+    
+    People who enjoy meeting other owners and value community engagement through shared dog activities even if they do not own a pet themselves
+    
+
+## Objectives
+
+The objective of this project is to develop a cloud-based Software-as-a-Service (SaaS) platform that allows dog owners to easily find, connect with, and organize playdates with nearby owners in a secure and privacy-conscious way. The system will enable users to create dog profiles, view nearby matches using geolocation services, and communicate through in-app features without sharing personal contact information. By leveraging containerized technologies such as Docker, PostgreSQL, Redis, and Kubernetes the platform will ensure scalability, reliability, and data persistence, while deployment on cloud platforms like DigitalOcean will provide high availability and efficient resource management. This project aims to promote both dog and owner socialization, foster community connections, and demonstrate how cloud-based applications can deliver meaningful, real-world solutions that balance functionality, user trust, and technological innovation.
+
+## Technical Stack
+
+The *WoofWhere* platform was built using a cloud-native, microservices-based architecture centered on containerization and orchestration. All backend services—including authentication, user management, pet profiles, playdates, and real-time chat—were containerized using Docker, ensuring consistency across development and production environments. These containers were deployed and managed using Kubernetes (K8s), which served as the project’s orchestration framework. Kubernetes handled workload distribution, service scaling, automated restarts, and inter-service networking through Deployments, Services, ConfigMaps, and Secrets. PersistentVolumes were used to support stateful components such as PostgreSQL, allowing the system to maintain data integrity across pod restarts and cluster updates.
+
+Data persistence and state management were supported primarily by PostgreSQL, which functioned as the central relational database for storing user information, pet profiles, playdates, and chat history. Redis was also utilized to enhance performance through caching and session-related operations, particularly for features that required real-time responsiveness. All durable storage within the Kubernetes cluster was provisioned using DigitalOcean’s block storage, ensuring reliable and persistent data retention across the entire application lifecycle.
+
+Real-time communication was achieved using WebSockets, enabling instant, bidirectional messaging for the chat service. This allowed users to coordinate playdates fluidly, with messages stored persistently in PostgreSQL to prevent data loss during redeployments or pod restarts. On the front end, React powered the responsive and interactive user interface, supporting features such as pet profile management, playdate creation, map exploration, and real-time chat. The integration of Open Street View provided an interactive, location-aware map that allowed users to discover nearby playdates and join them directly from the visual interface. React hooks and localized state management ensured smooth handling of UI updates in response to both backend API calls and incoming WebSocket events.
+
+Deployment and cloud infrastructure were implemented on a DigitalOcean Kubernetes (DOKS) cluster, which provided the compute resources, node pools, and persistent storage required for production deployment. Ubuntu Linux was used as the operating system across development and cloud environments to ensure stability and compatibility with the containerized system. A CI/CD pipeline automated the building, testing, and deployment of services, enabling continuous and reliable delivery throughout the development process.
+
+System monitoring and maintenance were supported through DigitalOcean’s monitoring suite and Kubernetes health checks, which provided ongoing visibility into resource usage, pod status, and service performance. Container logs and metrics were used extensively for debugging, performance optimizations, and ensuring the reliability of real-time interactions across the system.
+
+The system demonstrates a clear separation between frontend and backend services, with real-time communication capabilities and external database integration. The architecture supports a social or community-focused application with features for user management, pet profiles, playdates coordination, and real-time chat functionality.
+
+### Architectural Overview
+
+The infrastructure implements a three-tier architecture consisting of frontend services, backend services, and data persistence layers. This separation ensures scalability, maintainability, and the ability to develop and deploy components independently.
+![WoofWhere](./imgs/architecture.png "System Architecture")
+
+### Frontend Services Layer
+
+The frontend layer represents the client-facing application that runs in users' browsers, providing an interactive and responsive user experience.
+
+- **React and Vite Framework -** The application utilizes React as the primary JavaScript framework for building the user interface, combined with Vite as the build tool and development server. This combination provides fast development cycles with hot module replacement, optimized production builds, and excellent developer experience. React's component-based architecture enables reusable UI elements and efficient rendering through its virtual DOM implementation.
+- **Map Integration** - The application incorporates Mapbox API for geospatial functionality, enabling location-based features essential for coordinating playdates and displaying pet-friendly locations. This integration likely supports features such as finding nearby parks, mapping playdate locations, and visualizing user or pet locations on interactive maps.
+- **Real-Time Communication -** Websocket technology, implemented through Socket.io, enables bidirectional real-time communication between the client and server. This facilitates the chat functionality and potentially supports real-time notifications, live updates to playdate information, and instant messaging between users. Socket.io provides fallback mechanisms for environments where websockets are not available, ensuring broad compatibility.
+
+### Backend Services Layer
+
+The backend implements a microservices architecture where different functional domains are separated into distinct services, each handling specific business logic.
+
+- **Authorization Service** - The authorization service sits at the entry point of the backend, validating incoming requests and ensuring users have appropriate permissions to access protected resources.
+- **REST API Gateway** - The REST API serves as the central communication interface between the frontend and backend services. It implements RESTful principles for resource management, handling HTTP requests and routing them to appropriate microservices. This API layer abstracts the complexity of the underlying microservices architecture from the frontend, providing a unified interface for data operations.
+- **Playdates Microservice** - This service manages all functionality related to coordinating pet playdates. It likely handles creating playdate events, managing attendees, tracking locations, handling invitations, and storing playdate-related information. This dedicated service encapsulates all playdate business logic in one location.
+- **Pets Microservice** - The pets service manages pet profiles, including storing information about individual pets such as breed, age, size, temperament, vaccination status, and photographs. This service provides CRUD operations for pet data and may implement validation logic to ensure data quality and completeness.
+- **Users Microservice** - This service handles user profile management beyond authentication, storing user preferences, contact information, pet ownership relationships, and user-generated content. It manages the user's presence within the application ecosystem and maintains relationships between users and their pets.
+- **Chat Microservice** - The chat service processes real-time messaging functionality, managing conversation threads, message history, delivery status, and potentially implementing features like read receipts and typing indicators. This service likely integrates with the websocket layer to deliver messages in real-time while also persisting chat history for later retrieval.
+- **Message Queue Layer** - Sequelize serves as an Object-Relational Mapping tool and message queue system, bridging the gap between the application's object-oriented code and the relational database. It provides database abstraction, query building capabilities, migration management, and transaction handling. Sequelize supports multiple database systems and enables developers to work with database entities as JavaScript objects rather than writing raw SQL queries.
+- **Data Persistence Layer**
+    - PostgreSQL Database - The PostgreSQL database serves as the persistent data store for the entire application. This enterprise-grade relational database system stores user profiles, pet information, playdate records, chat histories, and all other application data. PostgreSQL offers robust transaction support, data integrity constraints, complex query capabilities, and excellent performance for read and write operations.
+
+### Communication Flow and Integration
+
+The architecture demonstrates well-defined communication pathways. User interactions in the React frontend trigger API calls to the backend REST API through the authorization service. The authorization service validates credentials and forwards requests to appropriate microservices. Each microservice performs its specific business logic, interacting with the PostgreSQL database through Sequelize ORM to persist or retrieve data.
+
+For real-time features, the frontend establishes WebSocket connections through Socket.io, enabling instant bidirectional communication with the chat service. This dual-channel approach—REST API for traditional request-response operations and websockets for real-time updates—provides both reliability and immediate responsiveness.
+
+### Architectural Strengths
+
+This infrastructure demonstrates several best practices in modern application development. The microservices architecture allows independent scaling of different functional components based on demand. The separation between frontend and backend enables different teams to work concurrently without conflicts. The inclusion of real-time communication capabilities enhances user engagement through immediate feedback and interactive features.
+
+The use of industry-standard technologies like React, PostgreSQL, and RESTful APIs ensures a robust foundation with extensive community support and documentation. The architecture supports horizontal scaling, where additional instances of specific microservices can be deployed to handle increased load.
+
+### Backend **API Endpoints**
+
+- **Users Endpoints**
+    - **GET** `/users`
+        
+        Returns a paginated list of users with optional filters, sorting, and inclusion of pets
+        
+        - `page` (default: 1)
+        - `limit` (default: 10)
+        - `search` – partial match on name or email
+        - `isActive` – filter by active status (`true` or `false`)
+        - `includePets` – include associated pets
+        - `sortBy` – default: `createdAt`
+        - `sortOrder` – `ASC` or `DESC`
+        
+        **Sample Request**
+        
+        ```jsx
+        GET /users?page=1&limit=5&search=john&includePets=true
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "users": [
+            {
+              "id": "a23bf...",
+              "name": "John Doe",
+              "email": "john@example.com",
+              "age": 32,
+              "isActive": true,
+              "pets": [
+                { "id": "p1", "name": "Buddy" }
+              ]
+            }
+          ],
+          "pagination": {
+            "total": 12,
+            "page": 1,
+            "limit": 5,
+            "pages": 3
+          }
+        }
+        ```
+        
+    - **GET** `/users/:id`
+        
+        Fetches a single user by ID, with optional inclusion of pets and pet party associations
+        
+        - `includePets=true`
+        - `includeParty=true` (nested inside pets)
+        
+        **Sample Request**
+        
+        ```jsx
+        GET /users/123e4567?includePets=true&includeParty=true
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "id": "123e4567",
+          "name": "John Doe",
+          "email": "john@example.com",
+          "isActive": true,
+          "pets": [
+            {
+              "id": "p23",
+              "name": "Buddy",
+              "parties": [
+                {
+                  "id": "party1",
+                  "title": "Park Meetup",
+                  "location": "Central Park",
+                  "date": "2024-05-01"
+                }
+              ]
+            }
+          ]
+        }
+        ```
+        
+    - **POST** `/users`
+        
+        Creates a new user. Validates uniqueness of name and email. Password is hashed before saving.
+        
+        **Sample Request**
+        
+        ```jsx
+        {
+          "name": "Alice",
+          "email": "alice@example.com",
+          "password": "mypassword123",
+          "age": 27
+        }
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "id": "3fa85...",
+          "name": "Alice",
+          "email": "alice@example.com",
+          "age": 27,
+          "isActive": true,
+          "createdAt": "2025-01-05T12:10:10.123Z"
+        }
+        ```
+        
+    - **POST** `/users/login`
+        
+        Authenticates a user using name and password. Returns JWT token and user object
+        
+        **Sample Request**
+        
+        ```jsx
+        {
+          "name": "Alice",
+          "password": "mypassword123"
+        }
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          "user": {
+            "id": "3fa85...",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "isActive": true
+          }
+        }
+        ```
+        
+    - **PUT** `/users/:id`
+        
+        Updates provided fields of a user record (name, email, age, isActive)
+        
+        **Sample Request**
+        
+        ```jsx
+        {
+          "email": "alice.new@example.com",
+          "age": 28
+        }
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "id": "3fa85...",
+          "name": "Alice",
+          "email": "alice.new@example.com",
+          "age": 28,
+          "isActive": true
+        }
+        ```
+        
+    - **DELETE** `/users/:id`
+        
+        Deletes a user using a database transaction
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "message": "User deleted",
+          "id": "3fa85..."
+        }
+        ```
+        
+    - **PATCH** `/users/:id/deactivate`
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "message": "User deactivated",
+          "user": {
+            "id": "3fa85...",
+            "isActive": false
+          }
+        }
+        ```
+        
+    - **PATCH** `/users/:id/activate`
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "message": "User activated",
+          "user": {
+            "id": "3fa85...",
+            "isActive": true
+          }
+        }
+        ```
+        
+    - **GET** `/users/stats`
+        
+        Returns counts of total, active, and inactive users, plus active percentage
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "total": 42,
+          "active": 35,
+          "inactive": 7,
+          "activePercentage": "83.33"
+        ```
+        
+- **Pets Endpoints**
+    - **GET** `/pets`
+        
+        Returns a paginated list of pets with optional filters, sorting, and nested associations
+        
+        - `page` (default: 1)
+        - `limit` (default: 10)
+        - `search` – partial match on pet name
+        - `ownerId` – filter pets by owner
+        - `includeOwner=true` – include owner info
+        - `includeParties=true` – include parties this pet participates in
+        - `sortBy` – default: `createdAt`
+        - `sortOrder` – `ASC` or `DESC`
+        
+        **Sample Request**
+        
+        ```jsx
+        GET /pets?page=1&limit=5&search=bud&includeOwner=true&includeParties=true
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "pets": [
+            {
+              "id": "p123...",
+              "name": "Buddy",
+              "breed": "Golden Retriever",
+              "size": "large",
+              "age": 4,
+              "ownerId": "u123...",
+              "owner": {
+                "id": "u123...",
+                "name": "John Doe",
+                "email": "john@example.com"
+              },
+              "parties": [
+                {
+                  "id": "pa12",
+                  "title": "Dog Park Hangout",
+                  "location": "Central Park",
+                  "date": "2025-01-15"
+                }
+              ]
+            }
+          ],
+          "pagination": {
+            "total": 12,
+            "page": 1,
+            "limit": 5,
+            "pages": 3
+          }
+        }
+        ```
+        
+    - **GET** `/pets/:id`
+        
+        Fetches a single pet by ID with optional inclusion of owner and party associations
+        
+        **Sample Request**
+        
+        ```jsx
+        GET /pets/p123?includeOwner=true&includeParties=true
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "id": "p123",
+          "name": "Buddy",
+          "breed": "Golden Retriever",
+          "size": "large",
+          "age": 4,
+          "ownerId": "u123",
+          "owner": {
+            "id": "u123",
+            "name": "John Doe",
+            "email": "john@example.com"
+          },
+          "parties": [
+            {
+              "id": "pa12",
+              "title": "Dog Park Hangout",
+              "location": "Central Park",
+              "date": "2025-01-15"
+            }
+          ]
+        }
+        ```
+        
+    - **POST** `/pets`
+        
+        Creates a new pet and associates it with an owner. `name` and `ownerId` are required.
+        
+        **Sample Request**
+        
+        ```jsx
+        {
+          "name": "Charlie",
+          "breed": "Corgi",
+          "size": "small",
+          "age": 2,
+          "ownerId": "u1234567"
+        }
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "id": "p456...",
+          "name": "Charlie",
+          "breed": "Corgi",
+          "size": "small",
+          "age": 2,
+          "ownerId": "u1234567",
+          "createdAt": "2025-01-05T12:00:00Z"
+        }
+        ```
+        
+    - **PUT** `/pets/:id`
+        
+        Updates a pet’s attributes. Only provided fields will be changed. Returns updated pet including owner
+        
+        **Sample Request**
+        
+        ```jsx
+        {
+          "name": "Charlie Jr.",
+          "age": 3
+        }
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "id": "p456",
+          "name": "Charlie Jr.",
+          "breed": "Corgi",
+          "size": "small",
+          "age": 3,
+          "ownerId": "u1234567",
+          "owner": {
+            "id": "u1234567",
+            "name": "John Doe",
+            "email": "john@example.com"
+          }
+        }
+        ```
+        
+    - **DELETE** `/pets/:id`
+        
+        Deletes the pet using a database transaction
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "message": "Pet deleted",
+          "pet": {
+            "id": "p456",
+            "name": "Charlie Jr.",
+            "ownerId": "u1234567"
+          }
+        }
+        ```
+        
+    - **GET** `/pets/:ownerId/get`
+        
+        Returns all pets owned by a specific user, optionally including party participation
+        
+        - `includeParties=true`
+        
+        **Sample Request**
+        
+        ```jsx
+        GET /pets/u123/get?includeParties=true
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "owner": {
+            "id": "u123",
+            "name": "John Doe",
+            "email": "john@example.com"
+          },
+          "pets": [
+            {
+              "id": "p123",
+              "name": "Buddy",
+              "parties": [
+                {
+                  "id": "pa12",
+                  "title": "Dog Park Hangout",
+                  "location": "Central Park",
+                  "date": "2025-01-15"
+                }
+              ]
+            }
+          ]
+        }
+        ```
+        
+    - **GET** `/pets/:id/party`
+        
+        Returns all parties associated with a specific pet
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "petId": "p123",
+          "parties": [
+            {
+              "id": "pa12",
+              "title": "Dog Park Hangout",
+              "location": "Central Park",
+              "date": "2025-01-15"
+            }
+          ],
+          "partyCount": 1
+        }
+        ```
+        
+    - **PATCH** `/pets/:id/transfer`
+        
+        Transfers the pet to a new owner. Validates old and new owners, uses DB transaction, and returns updated pet & ownership change details
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "pet": {
+            "id": "p123",
+            "name": "Buddy",
+            "owner": {
+              "id": "u789",
+              "name": "Alice",
+              "email": "alice@example.com"
+            }
+          },
+          "details": {
+            "oldOwnerId": "u123",
+            "newOwnerId": "u789"
+          }
+        }
+        ```
+        
+- **Playdates Endpoints**
+    - **GET**  `/parties`
+        
+        Retrieve a paginated list of all parties with optional search, date filtering, sorting, and inclusion of pets and their owners
+        
+        - `page` (default: 1)
+        - `limit` (default: 10)
+        - `search` - Partial match search on party title
+        - `date` - Filter parties by exact date
+        - `includePets` - Include pets attending the party (`true` or `false`)
+        - `includeOwners`-Include pet owners when including pets (`true` or `false`)
+        - `sortBy`- Field to sort by (`date`, `title`, etc.)
+        - `sortOrder` - Sorting order (`ASC` or `DESC`)
+        
+        **Sample Request**
+        
+        ```jsx
+        GET /parties?page=1&limit=5&search=birthday&includePets=true&includeOwners=true&sortBy=date&sortOrder=DESC
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "parties": [
+            {
+              "id": "uuid-party-1",
+              "title": "Birthday Bash",
+              "location": "Central Park",
+              "date": "2025-12-15T18:00:00.000Z",
+              "description": "Fun party for all friends",
+              "pets": [
+                {
+                  "id": "uuid-pet-1",
+                  "name": "Buddy",
+                  "owner": {
+                    "id": "uuid-user-1",
+                    "name": "John Doe",
+                    "email": "john@example.com"
+                  }
+                }
+              ]
+            }
+          ],
+          "pagination": {
+            "total": 20,
+            "page": 1,
+            "limit": 5,
+            "pages": 4
+          }
+        }
+        ```
+        
+    - **GET** `/parties/:id`
+        
+        Retrieve a single party by its ID, optionally including pets and their owners
+        
+        - `includePets` - Include pets attending the party (`true` or `false`)
+        - `includeOwners` - Include pet owners when including pets (`true` or `false`)
+        
+        **Sample Request**
+        
+        ```jsx
+        GET /parties/uuid-party-1?includePets=true&includeOwners=true
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "id": "uuid-party-1",
+          "title": "Birthday Bash",
+          "location": "Central Park",
+          "date": "2025-12-15T18:00:00.000Z",
+          "description": "Fun party for all friends",
+          "pets": [
+            {
+              "id": "uuid-pet-1",
+              "name": "Buddy",
+              "owner": {
+                "id": "uuid-user-1",
+                "name": "John Doe",
+                "email": "john@example.com"
+              }
+            }
+          ]
+        }
+        ```
+        
+    - **POST** `/parties`
+        
+        Create a new party. `title`, `location`, and `date` are required
+        
+        **Sample Request**
+        
+        ```jsx
+        {
+          "title": "New Year Party",
+          "location": "Times Square",
+          "date": "2026-01-01T20:00:00.000Z",
+          "description": "Ring in the New Year with us!"
+        }
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "id": "uuid-party-2",
+          "title": "New Year Party",
+          "location": "Times Square",
+          "date": "2026-01-01T20:00:00.000Z",
+          "description": "Ring in the New Year with us!",
+          "updatedAt": "2025-12-09T12:00:00.000Z",
+          "createdAt": "2025-12-09T12:00:00.000Z"
+        }
+        ```
+        
+    - **PUT** `/parties/:id`
+        
+        Update an existing party by ID. Only provided fields will be updated. Date must be in the future
+        
+        **Sample Request**
+        
+        ```jsx
+        {
+          "title": "Updated New Year Party",
+          "location": "Madison Square Garden"
+        }
+        ```
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "id": "uuid-party-2",
+          "title": "Updated New Year Party",
+          "location": "Madison Square Garden",
+          "date": "2026-01-01T20:00:00.000Z",
+          "description": "Ring in the New Year with us!",
+          "updatedAt": "2025-12-09T12:10:00.000Z",
+          "createdAt": "2025-12-09T12:00:00.000Z"
+        }
+        ```
+        
+    - **DELETE** `/parties/:id`
+        
+        Delete a party by its ID. Returns deleted party details
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "message": "Party deleted.",
+          "party": {
+            "id": "uuid-party-2",
+            "title": "Updated New Year Party",
+            "location": "Madison Square Garden",
+            "date": "2026-01-01T20:00:00.000Z",
+            "description": "Ring in the New Year with us!",
+            "updatedAt": "2025-12-09T12:10:00.000Z",
+            "createdAt": "2025-12-09T12:00:00.000Z"
+          }
+        }
+        ```
+        
+    - **PATCH** `/parties/:partyId/add/:petId`
+        
+        Add a pet to a party. Returns confirmation with party and pet IDs
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "message": "Pet added to party.",
+          "partyId": "uuid-party-1",
+          "petId": "uuid-pet-1"
+        }
+        ```
+        
+    - **PATCH** `/parties/:partyId/remove/:petId`
+        
+        Remove a pet from a party. Returns confirmation with party and pet IDs
+        
+        **Sample Response**
+        
+        ```jsx
+        {
+          "message": "Pet removed from party.",
+          "partyId": "uuid-party-1",
+          "petId": "uuid-pet-1"
+        }
+        ```
+        
+
+### Database Schema
+
+- **Users**
+    - **id**: UUID, primary key
+    - **name**: string, required
+    - **email**: string, required, unique
+    - **pets**: one-to-many relationship with `Pet` (`User.hasMany(Pet)`)
+    - **onDelete/onUpdate**: CASCADE
+- **Pets**
+    - **id**: UUID, primary key
+    - **name**: string, required
+    - **ownerId**: foreign key referencing `User.id`
+    - **owner**: belongs to `User` (`Pet.belongsTo(User)`)
+    - **parties**: many-to-many relationship with `Party` through `PartyPets` (`Pet.belongsToMany(Party)`)
+    - **onDelete/onUpdate**: CASCADE
+- **Parties**
+    - **id**: UUID, primary key
+    - **title**: string, required
+    - **location**: string, required
+    - **date**: date, required
+    - **description**: text, optional
+    - **pets**: many-to-many relationship with `Pet` through `PartyPets` (`Party.belongsToMany(Pet)`)
+    - **onDelete/onUpdate**: CASCADE
+    - **indexes**: non-unique index on `date`
+- **PartyPets (Join Table)**
+    - **partyId**: foreign key referencing `Party.id`
+    - **petId**: foreign key referencing `Pet.id`
+    - **onDelete/onUpdate**: CASCADE
+
+## Features
+
+*WoofWhere* offers a set of core features designed to enable seamless, privacy-friendly interaction between dog owners while meeting all technical requirements of a cloud-native, containerized application.
+
+**1. Secure User Authentication**
+
+- Users can create accounts and log in through a dedicated authentication service.
+- Authentication is containerized and communicates securely with PostgreSQL for credential storage.
+- Ensures only authorized users can create profiles, view playdates, or join chats.
+
+**2. Real-Time Chat Using WebSockets**
+
+- The application provides instant communication between users coordinating playdates.
+- Implemented through a WebSocket-based chat microservice, deployed as its own Docker container.
+- Messages are persisted in PostgreSQL so conversations remain intact across deployments, restarts, or Kubernetes pod rescheduling.
+- Demonstrates real-time functionality and multi-service communication in a cloud environment.
+
+**3. CI/CD Pipeline**
+
+- Automatic build and deployment pipeline ensures smooth updates to the Kubernetes cluster.
+- Code changes trigger rebuilt Docker images and automated redeployments.
+- Maintains consistent, reliable iteration of the application and reduces manual deployment errors.
+
+**4. Interactive Map Integration (Mapbox)**
+
+- Users can view and explore nearby playdates through a live, interactive map.
+- Mapbox APIs are used for geolocation, displaying events, and rendering dynamic markers.
+- Integrates seamlessly with the backend to filter and display playdates based on user location.
+
+**5. Full Containerization with Docker**
+
+- All services (auth, profile, pets, playdates, chat, frontend) are built as separate Docker containers.
+- Docker Compose is used for local development to run multiple services together.
+- Guarantees reproducible environments and modular service architecture.
+
+**6. Stateful Data Management with PostgreSQL**
+
+- PostgreSQL serves as the central database for user accounts, pet profiles, playdates, and chat history.
+- Kubernetes **PersistentVolumes** and **DigitalOcean Block Storage** ensure durable state across container restarts.
+- Fulfills the project requirement for reliable, persistent state management in a cloud-native application.
+
+**7. Cloud Deployment on DigitalOcean**
+
+- Application is deployed to a Kubernetes cluster running on DigitalOcean Droplets.
+- Includes managed networking, DNS, load balancing, and block storage volumes.
+- Demonstrates end-to-end lifecycle of designing, building, deploying, and maintaining a cloud-native service.
+
+**8. Kubernetes Orchestration**
+
+- Kubernetes manages deployments, scaling, load balancing, health checks, and inter-service communication.
+- Components include:
+    - **Deployments** to manage service replicas
+    - **Services** for stable networking
+    - **ConfigMaps & Secrets** for configuration and sensitive values
+    - **PersistentVolumes** for data durability
+- Satisfies course objectives for container orchestration and cloud infrastructure usage.
+
+**9. Monitoring & Observability**
+
+- DigitalOcean Monitoring and Kubernetes health checks allow the team to track pod status, storage health, and resource usage.
+- Logs from each container help troubleshoot behaviors—especially WebSocket communication and map updates.
+- Supports reliable operation and informed debugging in a distributed environment.
+
+Our application, *WoofWhere*, is built as a fully containerized microservice platform that supports authentication, user and pet profiles, playdate management, and real-time chat. Each of these core services is packaged in its own Docker container, allowing the system to remain modular, scalable, and easy to maintain. During development, we used Docker Compose to run all containers together in a coordinated local environment, fully satisfying the project’s containerization and multi-service development requirements.
+
+To ensure persistent state, the application uses PostgreSQL as the central relational database for all user information, pet data, playdate events, and chat history. We implemented a stateful design using Kubernetes PersistentVolumes and DigitalOcean Volumes, which guarantees that data survives pod restarts, container recreation, or full application redeployments. Even if the application stack is destroyed and rebuilt, the database remains intact, fulfilling the course requirement for durable state management.
+
+For deployment, we hosted our application on a DigitalOcean Droplet and used Kubernetes as our orchestration platform. Our Kubernetes configuration includes Deployments, Services, ConfigMaps, Secrets, and PersistentVolumes for Postgres, enabling automated pod restarts, isolated service communication, and clean separation between components. This architecture meets the course objective of deploying to a cloud provider while implementing a full Kubernetes-based orchestration workflow.
+
+Additionally, WoofWhere includes a real-time chat feature that allows users to communicate instantly when coordinating playdates. Powered by WebSockets and backed by our persistent PostgreSQL storage, the chat service remains functional and reliable even across container restarts or updated deployments. Together, these features demonstrate a complete cloud-native system that fulfills all technical project requirements while supporting our vision of a seamless platform for dog owners to connect and schedule playdates.
+
+## User Guide
+
+Users interact with WoofWhere through a simple and intuitive web interface. When visiting the application for the first time, they are greeted with a login page where they can either sign in or create a new account. 
+
+![WoofWhere](./imgs/login.png "Login Page")
+
+First-time users register by providing basic credentials, which are securely stored through our authentication microservice running in a Docker container and backed by PostgreSQL. 
+
+![WoofWhere](./imgs/signup.png "Signup Page")
+
+After logging in, users are directed to their personal profile page, where they can update details about themselves. This information is managed by a dedicated profile service, demonstrating the modular microservice design of our system.
+
+![WoofWhere](./imgs/user.png "User Profile")
+
+From their profile dashboard, users can also create and manage pet profiles. Each pet entry—such as name, breed, age, and personality traits—is saved in our relational PostgreSQL database and persists even if the application is redeployed, showcasing our stateful design and Kubernetes-based storage using PersistentVolumes.
+
+![WoofWhere](./imgs/pet.png "Pet Profile")
+
+Once profiles are set up, users can create playdates. The playdate creation page allows users to choose which of their pets will attend, specify the location, time, and activity, and publish the event to the shared map. This feature highlights our orchestration architecture, where the playdate service operates independently in its own container while communicating with the database. All published playdates appear on the interactive map, enabling other users to browse nearby events in real time.
+
+![WoofWhere](./imgs/playdate.png "Playdate Creation")
+
+Users can view any open playdate and request to join. 
+
+![WoofWhere](./imgs/dashboard.png "Playdate Information")
+
+When interested in coordinating details, they can start a real-time chat with the host or other participants. This chat feature uses WebSockets, supported by our chat microservice, allowing instant message exchange that persists in PostgreSQL, demonstrating reliable state management even across pod restarts or redeployments.
+
+![WoofWhere](./imgs/chat.png "Chat Window")
+
+Users can chat in real time with users who are online
+
+![WoofWhere](./imgs/map.png "Map Window")
+
+If the playdates are arranged, the locations with markers are shown on the map
+
+## Development Guide
+
+### Prerequisites
+
+- **Node.js** (v22.13.1)
+    
+    Verify by 
+    
+    ```jsx
+    node -v
+    ```
+    
+- **npm** (v10.9.2)
+    
+    Verify by 
+    
+    ```jsx
+    npm -v
+    ```
+    
+- **Docker** (v28.4.0)
+    
+    Verify by 
+    
+    ```jsx
+    docker -v
+    ```
+    
+- Minikube (v1.37.0)
+    
+    Verify by 
+    
+    ```jsx
+    minikube version
+    ```
+    
+
+### Obtain Source Code
+
+- Clone the Repository
+    
+    ```jsx
+    git clone https://github.com/chx93965/WoofWhere.git
+    ```
+    
+
+### Environment Setup
+
+- Rename `backend/.env.example` to `backend/.env` , modify content if needed
+    
+    ```jsx
+    # Server Configuration
+    NODE_ENV=development
+    PORT=4001
+    LOG_LEVEL=info
+    
+    # Database Configuration
+    DB_PORT=5432
+    DB_NAME=app-db
+    DB_USER=user
+    DB_PASSWORD=password
+    
+    # Authentication Configuration
+    JWT_SECRET=your_jwt_secret
+    ```
+    
+
+### Case 1: Minikube Deployment
+
+- Build and run the backend image
+    
+    ```jsx
+    cd backend/App
+    docker compose build
+    docker compose up -d
+    ```
+    
+- Build and run the frontend image
+    
+    ```jsx
+    cd frontend
+    docker compose build
+    docker compose up -d
+    ```
+    
+- Start Minikube
+    
+    ```jsx
+    minikube start
+    ```
+    
+- Load images to Minikube
+    
+    ```jsx
+    minikube image load frontend-web:latest
+    minikube image load app-app-service:latest
+    minikube image load postgres:18
+    ```
+    
+    Verify by
+    
+    ```jsx
+    minikube image ls | grep -E 'frontend-web:latest|app-app-service:latest|postgres:18'
+    ```
+    
+- Navigate to `k8s/deployments`, for all `.yaml`files, modify `spec/template/spec/containers/image` with proper Docker Hub credentials or with locally built image names
+- Deploy PostgreSQL
+    
+    ```jsx
+    kubectl apply -f ../k8s/secrets/postgres-secret.yaml
+    kubectl apply -f ../k8s/configmaps/postgres-config.yaml
+    kubectl apply -f ../k8s/volumes/postgres-volume.yaml
+    kubectl apply -f ../k8s/volumes/postgres-claim.yaml
+    kubectl apply -f ../k8s/deployments/postgres.yaml
+    kubectl apply -f ../k8s/services/postgres-service.yaml
+    ```
+    
+    Verify by
+    
+    ```jsx
+    kubectl get pods -l app=postgres
+    kubectl get svc -l app=postgres
+    ```
+    
+- Deploy backend app
+    
+    ```jsx
+    kubectl apply -f ../k8s/secrets/app-secret.yaml
+    kubectl apply -f ../k8s/deployments/app.yaml
+    kubectl apply -f ../k8s/services/app-service.yaml
+    ```
+    
+    Verify by
+    
+    ```jsx
+    kubectl get pods -l app=app
+    kubectl get svc -l app=app
+    ```
+    
+- Deploy frontend app
+    
+    ```jsx
+    kubectl apply -f ../k8s/deployments/frontend.yaml
+    kubectl apply -f ../k8s/services/frontend-service.yaml
+    ```
+    
+    Verify by
+    
+    ```jsx
+    kubectl get pods -l app=frontend
+    kubectl get svc -l app=frontend
+    ```
+    
+- Get the frontend URL
+    
+    ```jsx
+    minikube service frontend-service --url
+    ```
+    
+
+### Case 2: DigitalOcean K8S Deployment
+
+- Refer to the CI/CD pipeline `.github/workflows/ci-cd.yml`
+
+### Case 3: Local Deployment (not recommended)
+
+- Navigate to `frontend/src/api/config.js`
+- Change line 1 to the following
+    
+    ```jsx
+    const API_BASE_URL = 'http://localhost:4001';
+    ```
+    
+- Navigate to `frontend/nginx.conf`
+- Comment out line 21
+    
+    ```jsx
+    # proxy_pass http://app-service.default.svc.cluster.local:4001;
+    ```
+    
+- Build and run the backend image
+    
+    ```jsx
+    cd backend/App
+    docker compose build
+    docker compose up -d
+    ```
+    
+- Build and run the frontend image
+    
+    ```jsx
+    cd frontend
+    docker compose build
+    docker compose up -d
+    ```
+    
+- Verify the container status
+    
+    ```jsx
+    docker ps
+    ```
+    
+
+## Deployment Information
+
+**Live URL:** [http://157.230.68.185:8001/](http://157.230.68.185:8001/)
+
+## Individual Contributions
+
+### *Daniel*
+
+### **Backend Development & API Integration**
+
+Contributions included the implementation and integration of several core backend services essential to the application’s primary functionality. Work encompassed building and debugging the **User Authentication and Profile API**, **Pet Profiles API**, and **Playdates API**, ensuring correct CRUD operations and smooth data flow between the frontend and backend. Additional responsibilities involved enforcing secure data handling practices, validating payload structures, and resolving edge-case issues affecting session management and data consistency across services.
+
+### **Chat Services API**
+
+Development and stabilization of the **real-time chat module** formed another major component of the technical work. This involved designing the chat service architecture, integrating WebSocket-based real-time updates, ensuring accurate message routing between users, and resolving issues related to message persistence, synchronization, and inter-service communication. The chat system was further aligned with user authentication to ensure correct chat room associations and permission handling.
+
+### **Debugging and Systems Stabilization**
+
+Extensive debugging efforts were undertaken across multiple services to improve system reliability. This included diagnosing and resolving environment configuration problems, Docker image inconsistencies, incorrect or missing environment variables, deployment failures, and communication issues between microservices. Logs, container outputs, network interactions, and database behavior were analyzed to restore functionality and enhance system stability.
+
+### **Kubernetes Deployment & Infrastructure Setup**
+
+A major contribution involved leading the deployment of the application onto a **DigitalOcean Kubernetes (DOKS) cluster**. Responsibilities included:
+
+- Creating Kubernetes **Deployments**, **Services**, **Ingress**, **ConfigMaps**, and **Secrets**
+- Configuring **PersistentVolumes** and **PersistentVolumeClaims** for PostgreSQL
+- Managing container registry images, version control, and rollout strategies
+- Implementing load balancing and external routing via the cluster’s ingress controller
+- Troubleshooting pod crashes, CrashLoopBackOff states, Pending volume claims, and networking misconfigurations
+- Ensuring backend and frontend microservices were correctly exposed and able to communicate internally
+- Monitoring cluster health, system logs, and performance metrics throughout deployment
+
+These efforts enabled the system to transition from local development containers to a scalable, production-ready cloud environment.
+
+### **Project Management & Deliverables Coordination**
+
+Project management responsibilities included coordinating team planning, aligning deliverables with course requirements, and ensuring all core components—frontend features, backend microservices, infrastructure, database configuration, chat integration, and UI workflows—were developed cohesively. Oversight extended to system integration across services and ensuring that all deadlines were met.
+
+Additionally, leadership was provided in preparing the **final written report**, ensuring clear documentation of system architecture, design decisions, and performance outcomes. Coordination and assembly of the **final video submission** were also overseen to ensure accurate and comprehensive presentation of the completed project.
+
+### *Tanvi*
+
+### **Real-Time Chat Service**
+
+She designed and integrated the core **real-time chat service**, enabling instant communication between users coordinating dog playdates. This included:
+
+- Implementing a **WebSocket-based chat architecture** that supports live messaging, automated room creation, and user-to-user communication without exposing personal information.
+- Ensuring the chat microservice was fully **containerized using Docker**, allowing for consistent behavior across development, testing, and production environments.
+- Integrating the chat service into the **Kubernetes deployment**, defining Deployments, Services, and environment variables so that the feature scaled reliably within our cloud infrastructure.
+- Configuring **message persistence** using PostgreSQL along with **Kubernetes PersistentVolumes**, ensuring that chat history was not lost when pods restarted.
+- Working closely with the authentication and user services to guarantee that message routing, user identification, and chat permissions remained accurate and secure.
+
+Her contributions made real-time interaction a reliable, high-performance experience within the platform.
+
+### **Map-Based Front-End Integration**
+
+She led the integration of **Mapbox** into the front-end application—one of the core features of *WoofWhere*. Her work included:
+
+- Building an interactive, location-aware mapping interface that allows users to **view, create, and join playdates** directly from the map.
+- Connecting the map interface to backend Playdate APIs so that playdate markers dynamically update based on the user’s location and current database state.
+- Implementing event-driven interactions that allow users to tap on map markers, view playdate details, and transition smoothly into real-time chat rooms.
+- Ensuring the map UI remained responsive and performant even as real-time data (such as new playdates or chat notifications) updated in the background.
+
+This integration transformed the app from a simple listing service into a **geospatially interactive** social platform.
+
+### **Front-End Enhancements**
+
+She played a key role in the design, development, and refinement of the user interface, contributing to features such as:
+
+- The full **playdate creation workflow**, including forms, validation, and live updates.
+- User-friendly components for browsing playdates, interacting with the map, and transitioning into chat sessions.
+- UI/UX improvements focused on clarity, accessibility, and ease of use—ensuring that both new and experienced dog owners could intuitively navigate the platform.
+- Maintaining consistent styling, component reuse, and state management across the application while integrating real-time features that depended on WebSocket updates.
+
+Her front-end contributions strengthened both the visual coherence and overall usability of the system.
+
+### **Technical Impact**
+
+Her work enabled *WoofWhere* to deliver a **cloud-native, real-time, geolocation-aware experience**, combining:
+
+- **WebSockets** for instant messaging
+- **Mapbox** for interactive playdate discovery
+- **PostgreSQL + PersistentVolumes** for durable real-time data
+- **Docker + Kubernetes** for modular, scalable deployments
+
+By bridging front-end interactivity with backend microservices and containerized infrastructure, she demonstrated how modern web applications can deliver seamless, dynamic, and highly engaging user experiences.
+
+### *Hanxiao*
+
+### Database Architecture & PostgreSQL Schema Design
+
+Designed and implemented the **PostgreSQL database schema**, forming the structure of the application. 
+
+- Modelling core domain entities: **Users**, **Pets**, and **Playdates**
+- Creating and optimizing **relational associations** and **join tables** to support user–pet relations, playdate participants, and cross-entity interactions
+- Enforcing **referential integrity**, foreign keys, constraints, and cascading rules
+- Designing schema components to ensure efficient queries for real-time playdate features and user activity tracking
+
+### Backend Application Service Development
+
+Developed the **entire backend “app” service**, which handled all non-chat business logic. 
+
+- Implementing **object and model definitions** for Users, Pets, and Playdates
+- Building complete **REST API controllers**, including CRUD operations, filtering, validation flows, and advanced query behaviours
+- Defining and organizing **API routes**, ensuring cohesive structure and compatibility with frontend expectations
+- Creating the backend’s **PostgreSQL integration layer**, handling connections, query logic, and secure data transactions
+- Ensuring that all business rules for user actions, pet management, and playdate scheduling are enforced
+
+### Frontend–Backend Integration & Core Feature Implementation
+
+Accomplished the **API integrations** across the frontend, enabling the application’s major user workflows. 
+
+- Developed authentication components, integrated all **authentication endpoints** to support login, signup, session persistence, and authorization flows
+- Implemented frontend features for **user profile creation and update**, **pet profile creation and management**, and **playdate creation and participation**
+- Built functionality for the **member/participant display**, ensuring real-time data was correctly reflected in the UI
+- Added UI/UX refinements to align with design specifications, ensuring frontend components interact with backend data
+- Troubleshot edge-case issues between frontend state and backend responses during development, deployment, and live operation
+
+### Kubernetes Development & Deployment Automation
+
+Composed **Kubernetes configuration files** for all components and orchestrated the full deployment pipeline. 
+
+- Created **ConfigMaps**, **Deployments**, **Services**, **Secrets**, and **Volume definitions** for all services and databases
+- Wrote **bash automation scripts** for Kubernetes deployment operations
+- Configured, ran, and debugged the system on **Minikube**, achieving consistent and reproducible cluster setups
+- Led the deployment efforts on the **DigitalOcean Kubernetes (DOKS) cluster**, ensuring that services were deployed correctly and consistently under production-like conditions
+- Resolved complex issues such as pod scheduling failures, environment variable misconfigurations, service discovery issues, and volume attachment problems
+
+### CI/CD Pipeline
+
+Constructed the project’s **CI/CD pipeline**, enabling seamless builds and deployments. 
+
+- Created automated pipelines to **build and push all Docker images** to Docker Hub
+- Managed Docker tagging conventions and build optimization
+- Developed workflows to deploy to both **Minikube** and **DigitalOcean Kubernetes**, ensuring parity between environments
+- Integrating continuous deployment steps for backend and frontend services, database migrations, and version upgrades
+
+## Lessons Learned and Concluding Remarks
+
+- **Real-Time WebSocket Challenges:** Implementing real-time chat using WebSockets proved more complex than anticipated. Maintaining a persistent state across container restarts and handling React’s `useEffect` lifecycle for socket connections was tricky. There were instances where sockets were technically connected, but the front-end would display a blank screen. This highlighted the importance of careful state management and debugging in asynchronous real-time applications.
+- **Geolocation Integration:** Converting user-provided locations into latitude and longitude coordinates was a tedious process that required integrating external APIs. Handling edge cases, such as ambiguous addresses or failed API calls, emphasized the need for robust error handling and fallback mechanisms in location-based services.
+- **Effective Team Communication:** Short, focused, and regular Scrum calls were critical to resolving issues quickly. Coordinated discussions helped the team debug complex problems efficiently, especially when working with containerized microservices and orchestrated deployments in Kubernetes. This reinforced the value of agile practices and clear communication in collaborative development.
+- **Cloud-Native Insights:** Deploying the platform in a fully containerized, Kubernetes-orchestrated environment provided hands-on experience with persistent volumes, service orchestration, and real-world state management. It underscored how containerization and orchestration improve modularity, scalability, and reliability, but also how they introduce their own complexities in debugging and monitoring.
+- **User-Centric Design:** Designing features like real-time chat and interactive map interfaces highlighted the importance of balancing technical implementation with usability. Ensuring smooth user experience while managing backend complexity strengthened the team’s appreciation for thoughtful, user-focused development.
+
+**Concluding Remarks:** Overall, this project was an invaluable learning experience in both technical and teamwork aspects. It demonstrated the power of cloud-native architecture to solve real-world problems while reinforcing the importance of planning, collaboration, and adaptability when tackling complex systems. The experience not only improved technical skills but also provided insight into how technology can foster meaningful community connections in a privacy-conscious and scalable manner.
