@@ -32,7 +32,7 @@
 
 - This project is motivated by a real and relatable need to help dog owners and their pets sustain meaningful connections in a safe, convenient, and privacy-conscious way. In increasingly urbanized and digitally dependent environments, such a solution promotes both community building and pet well-being.
 - It also serves as a practical opportunity to apply cloud computing concepts to a real-world social issue. By using technologies such as Docker, PostgreSQL, Redis, and Kubernetes and Digital Ocean, the project demonstrates how containerized, privacy-first systems can support genuine, local human interaction.
-- Ultimately, the project merges social impact with technical innovation, showcasing how thoughtful, cloud-based design can enhance both community engagement and quality of life for dog owners and their pets.
+- The project merges social impact with technical innovation, demonstrating how cloud-based design can enhance both community engagement and quality of life for dog owners and their pets.
 
 ### Target Users
 
@@ -51,7 +51,7 @@
 
 ## Objectives
 
-The objective of this project is to develop a cloud-based Software-as-a-Service (SaaS) platform that allows dog owners to easily find, connect with, and organize playdates with nearby owners in a secure and privacy-conscious way. The system will enable users to create dog profiles, view nearby matches using geolocation services, and communicate through in-app features without sharing personal contact information. By leveraging containerized technologies such as Docker, PostgreSQL, Redis, and Kubernetes the platform will ensure scalability, reliability, and data persistence, while deployment on cloud platforms like DigitalOcean will provide high availability and efficient resource management. Ultimately, this project aims to promote both dog and owner socialization, foster community connections, and demonstrate how cloud-based applications can deliver meaningful, real-world solutions that balance functionality, user trust, and technological innovation.
+The objective of this project is to develop a cloud-based Software-as-a-Service (SaaS) platform that allows dog owners to easily find, connect with, and organize playdates with nearby owners in a secure and privacy-conscious way. The system will enable users to create dog profiles, view nearby matches using geolocation services, and communicate through in-app features without sharing personal contact information. By leveraging containerized technologies such as Docker, PostgreSQL, Redis, and Kubernetes the platform will ensure scalability, reliability, and data persistence, while deployment on cloud platforms like DigitalOcean will provide high availability and efficient resource management. This project aims to promote both dog and owner socialization, foster community connections, and demonstrate how cloud-based applications can deliver meaningful, real-world solutions that balance functionality, user trust, and technological innovation.
 
 ## Technical Stack
 
@@ -70,7 +70,7 @@ The system demonstrates a clear separation between frontend and backend services
 ### Architectural Overview
 
 The infrastructure implements a three-tier architecture consisting of frontend services, backend services, and data persistence layers. This separation ensures scalability, maintainability, and the ability to develop and deploy components independently.
-![WoofWhere](./imgs/architecture.png "Architecture")
+![WoofWhere](./imgs/architecture.png "System Architecture")
 
 ### Frontend Services Layer
 
@@ -98,7 +98,7 @@ The backend implements a microservices architecture where different functional d
 
 The architecture demonstrates well-defined communication pathways. User interactions in the React frontend trigger API calls to the backend REST API through the authorization service. The authorization service validates credentials and forwards requests to appropriate microservices. Each microservice performs its specific business logic, interacting with the PostgreSQL database through Sequelize ORM to persist or retrieve data.
 
-For real-time features, the frontend establishes websocket connections through Socket.io, enabling instant bidirectional communication with the chat service. This dual-channel approach—REST API for traditional request-response operations and websockets for real-time updates—provides both reliability and immediate responsiveness.
+For real-time features, the frontend establishes WebSocket connections through Socket.io, enabling instant bidirectional communication with the chat service. This dual-channel approach—REST API for traditional request-response operations and websockets for real-time updates—provides both reliability and immediate responsiveness.
 
 ### Architectural Strengths
 
@@ -876,32 +876,38 @@ Additionally, WoofWhere includes a real-time chat feature that allows users to c
 ## User Guide
 
 Users interact with WoofWhere through a simple and intuitive web interface. When visiting the application for the first time, they are greeted with a login page where they can either sign in or create a new account. 
-![WoofWhere](./imgs/login.png "Login")
+
+![WoofWhere](./imgs/login.png "Login Page")
 
 First-time users register by providing basic credentials, which are securely stored through our authentication microservice running in a Docker container and backed by PostgreSQL. 
-![WoofWhere](./imgs/signup.png "Signup")
+
+![WoofWhere](./imgs/signup.png "Signup Page")
 
 After logging in, users are directed to their personal profile page, where they can update details about themselves. This information is managed by a dedicated profile service, demonstrating the modular microservice design of our system.
-![WoofWhere](./imgs/user.png "User")
+
+![WoofWhere](./imgs/user.png "User Profile")
 
 From their profile dashboard, users can also create and manage pet profiles. Each pet entry—such as name, breed, age, and personality traits—is saved in our relational PostgreSQL database and persists even if the application is redeployed, showcasing our stateful design and Kubernetes-based storage using PersistentVolumes.
-![WoofWhere](./imgs/pet.png "Pet")
+
+![WoofWhere](./imgs/pet.png "Pet Profile")
 
 Once profiles are set up, users can create playdates. The playdate creation page allows users to choose which of their pets will attend, specify the location, time, and activity, and publish the event to the shared map. This feature highlights our orchestration architecture, where the playdate service operates independently in its own container while communicating with the database. All published playdates appear on the interactive map, enabling other users to browse nearby events in real time.
-![WoofWhere](./imgs/playdate.png "Playdate")
+
+![WoofWhere](./imgs/playdate.png "Playdate Creation")
 
 Users can view any open playdate and request to join. 
-![WoofWhere](./imgs/dashboard.png "Dashboard")
+
+![WoofWhere](./imgs/dashboard.png "Playdate Information")
 
 When interested in coordinating details, they can start a real-time chat with the host or other participants. This chat feature uses WebSockets, supported by our chat microservice, allowing instant message exchange that persists in PostgreSQL, demonstrating reliable state management even across pod restarts or redeployments.
-![WoofWhere](./imgs/chat.png "Chat")
+
+![WoofWhere](./imgs/chat.png "Chat Window")
 
 Users can chat in real time with users who are online
-![WoofWhere](./imgs/map.png "Map")
+
+![WoofWhere](./imgs/map.png "Map Window")
 
 If the playdates are arranged, the locations with markers are shown on the map
-
-Together, these guided user interactions showcase the full breadth of our cloud-native system: containerized services, persistent relational storage, Kubernetes orchestration, and real-time communication. Screenshots of each step login, profile setup, pet creation, map view, playdate creation, and chat can be included to support the user workflow visually.
 
 ## Development Guide
 
@@ -1245,7 +1251,7 @@ Constructed the project’s **CI/CD pipeline**, enabling seamless builds and dep
 
 ## Lessons Learned and Concluding Remarks
 
-- **Real-Time WebSocket Challenges:** Implementing real-time chat using WebSockets proved more complex than anticipated. Maintaining persistent state across container restarts and handling React’s `useEffect` lifecycle for socket connections was tricky. There were instances where sockets were technically connected, but the front-end would display a blank screen. This highlighted the importance of careful state management and debugging in asynchronous real-time applications.
+- **Real-Time WebSocket Challenges:** Implementing real-time chat using WebSockets proved more complex than anticipated. Maintaining a persistent state across container restarts and handling React’s `useEffect` lifecycle for socket connections was tricky. There were instances where sockets were technically connected, but the front-end would display a blank screen. This highlighted the importance of careful state management and debugging in asynchronous real-time applications.
 - **Geolocation Integration:** Converting user-provided locations into latitude and longitude coordinates was a tedious process that required integrating external APIs. Handling edge cases, such as ambiguous addresses or failed API calls, emphasized the need for robust error handling and fallback mechanisms in location-based services.
 - **Effective Team Communication:** Short, focused, and regular Scrum calls were critical to resolving issues quickly. Coordinated discussions helped the team debug complex problems efficiently, especially when working with containerized microservices and orchestrated deployments in Kubernetes. This reinforced the value of agile practices and clear communication in collaborative development.
 - **Cloud-Native Insights:** Deploying the platform in a fully containerized, Kubernetes-orchestrated environment provided hands-on experience with persistent volumes, service orchestration, and real-world state management. It underscored how containerization and orchestration improve modularity, scalability, and reliability, but also how they introduce their own complexities in debugging and monitoring.
