@@ -10,7 +10,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const s = io("http://157.230.68.185:4000", { transports: ["websocket"] });
+    const s = io("http://localhost:4000", { transports: ["websocket"] });
     setSocket(s);
 
     return () => {
