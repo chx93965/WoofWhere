@@ -1,5 +1,19 @@
 # Final Report: Woofwhere
 
+## Table of Contents
+- [Team Information](#team-information)
+- [The Problem](#the-problem)
+- [Motivation](#motivation)
+- [Objectives](#objectives)
+- [Technical Stack](#technical-stack)
+- [Features](#features)
+- [User Guide](#user-guide)
+- [Development Guide](#development-guide)
+- [Deployment Information](#deployment-information)
+- [Video Demo](./demo.mp4)
+- [Individual Contributions](#individual-contributions)
+- [Concluding Remarks](#lessons-learned-and-concluding-remarks)
+
 ## Team Information
 
 | Name | Email | Student Number | Github Username |
@@ -35,7 +49,7 @@
     People who enjoy meeting other owners and value community engagement through shared dog activities even if they do not own a pet themselves
     
 
-## **Objectives**
+## Objectives
 
 The objective of this project is to develop a cloud-based Software-as-a-Service (SaaS) platform that allows dog owners to easily find, connect with, and organize playdates with nearby owners in a secure and privacy-conscious way. The system will enable users to create dog profiles, view nearby matches using geolocation services, and communicate through in-app features without sharing personal contact information. By leveraging containerized technologies such as Docker, PostgreSQL, Redis, and Kubernetes the platform will ensure scalability, reliability, and data persistence, while deployment on cloud platforms like DigitalOcean will provide high availability and efficient resource management. Ultimately, this project aims to promote both dog and owner socialization, foster community connections, and demonstrate how cloud-based applications can deliver meaningful, real-world solutions that balance functionality, user trust, and technological innovation.
 
@@ -56,8 +70,7 @@ The system demonstrates a clear separation between frontend and backend services
 ### Architectural Overview
 
 The infrastructure implements a three-tier architecture consisting of frontend services, backend services, and data persistence layers. This separation ensures scalability, maintainability, and the ability to develop and deploy components independently.
-
-![WoofWhere](./imgs/architecture.png “Architecture”)
+![WoofWhere](./imgs/architecture.png "Architecture")
 
 ### Frontend Services Layer
 
@@ -789,7 +802,7 @@ The use of industry-standard technologies like React, PostgreSQL, and RESTful AP
     - **petId**: foreign key referencing `Pet.id`
     - **onDelete/onUpdate**: CASCADE
 
-## **Features**:
+## Features
 
 *WoofWhere* offers a set of core features designed to enable seamless, privacy-friendly interaction between dog owners while meeting all technical requirements of a cloud-native, containerized application.
 
@@ -860,43 +873,37 @@ For deployment, we hosted our application on a DigitalOcean Droplet and used Kub
 
 Additionally, WoofWhere includes a real-time chat feature that allows users to communicate instantly when coordinating playdates. Powered by WebSockets and backed by our persistent PostgreSQL storage, the chat service remains functional and reliable even across container restarts or updated deployments. Together, these features demonstrate a complete cloud-native system that fulfills all technical project requirements while supporting our vision of a seamless platform for dog owners to connect and schedule playdates.
 
-## **User Guide**
+## User Guide
 
-Users interact with WoofWhere through a simple and intuitive web interface. When visiting the application for the first time, they are greeted with a login page where they can either sign in or create a new account. First-time users register by providing basic credentials, which are securely stored through our authentication microservice running in a Docker container and backed by PostgreSQL. 
+Users interact with WoofWhere through a simple and intuitive web interface. When visiting the application for the first time, they are greeted with a login page where they can either sign in or create a new account. 
+![WoofWhere](./imgs/login.png "Login")
 
-![WoofWhere](./imgs/login.png “Login”)
-
-![WoofWhere](./imgs/signup.png “Signup”)
+First-time users register by providing basic credentials, which are securely stored through our authentication microservice running in a Docker container and backed by PostgreSQL. 
+![WoofWhere](./imgs/signup.png "Signup")
 
 After logging in, users are directed to their personal profile page, where they can update details about themselves. This information is managed by a dedicated profile service, demonstrating the modular microservice design of our system.
-
-![WoofWhere](./imgs/user.png “User”)
+![WoofWhere](./imgs/user.png "User")
 
 From their profile dashboard, users can also create and manage pet profiles. Each pet entry—such as name, breed, age, and personality traits—is saved in our relational PostgreSQL database and persists even if the application is redeployed, showcasing our stateful design and Kubernetes-based storage using PersistentVolumes.
-
-![WoofWhere](./imgs/pet.png “Pet”)
+![WoofWhere](./imgs/pet.png "Pet")
 
 Once profiles are set up, users can create playdates. The playdate creation page allows users to choose which of their pets will attend, specify the location, time, and activity, and publish the event to the shared map. This feature highlights our orchestration architecture, where the playdate service operates independently in its own container while communicating with the database. All published playdates appear on the interactive map, enabling other users to browse nearby events in real time.
-
-![WoofWhere](./imgs/playdate.png “Playdate”)
+![WoofWhere](./imgs/playdate.png "Playdate")
 
 Users can view any open playdate and request to join. 
-
-![WoofWhere](./imgs/dashboard.png “Dashboard”)
+![WoofWhere](./imgs/dashboard.png "Dashboard")
 
 When interested in coordinating details, they can start a real-time chat with the host or other participants. This chat feature uses WebSockets, supported by our chat microservice, allowing instant message exchange that persists in PostgreSQL, demonstrating reliable state management even across pod restarts or redeployments.
+![WoofWhere](./imgs/chat.png "Chat")
 
-![WoofWhere](./imgs/chat.png “Chat”)
+Users can chat in real time with users who are online
+![WoofWhere](./imgs/map.png "Map")
 
-Users can chat in real time with the users who are online
+If the playdates are arranged, the locations with markers are shown on the map
 
-![WoofWhere](./imgs/map.png “Map”)
+Together, these guided user interactions showcase the full breadth of our cloud-native system: containerized services, persistent relational storage, Kubernetes orchestration, and real-time communication. Screenshots of each step login, profile setup, pet creation, map view, playdate creation, and chat can be included to support the user workflow visually.
 
-If the playdates are arranged the locations with markers are shown in the map
-
-Together, these guided user interactions showcase the full breadth of our cloud-native system: containerized services, persistent relational storage, Kubernetes orchestration, and real-time communication. Screenshots of each step login, profile setup, pet creation, map view, playdate creation, and chat can be included to visually support the user workflow.
-
-## **Development Guide**
+## Development Guide
 
 ### Prerequisites
 
@@ -1099,11 +1106,11 @@ Together, these guided user interactions showcase the full breadth of our cloud-
     ```
     
 
-## **Deployment Information**
+## Deployment Information
 
 **Live URL:** [http://157.230.68.185:8001/](http://157.230.68.185:8001/)
 
-## **Individual Contributions**
+## Individual Contributions
 
 ### *Daniel*
 
@@ -1236,7 +1243,7 @@ Constructed the project’s **CI/CD pipeline**, enabling seamless builds and dep
 - Developed workflows to deploy to both **Minikube** and **DigitalOcean Kubernetes**, ensuring parity between environments
 - Integrating continuous deployment steps for backend and frontend services, database migrations, and version upgrades
 
-## **Lessons Learned and Concluding Remarks**
+## Lessons Learned and Concluding Remarks
 
 - **Real-Time WebSocket Challenges:** Implementing real-time chat using WebSockets proved more complex than anticipated. Maintaining persistent state across container restarts and handling React’s `useEffect` lifecycle for socket connections was tricky. There were instances where sockets were technically connected, but the front-end would display a blank screen. This highlighted the importance of careful state management and debugging in asynchronous real-time applications.
 - **Geolocation Integration:** Converting user-provided locations into latitude and longitude coordinates was a tedious process that required integrating external APIs. Handling edge cases, such as ambiguous addresses or failed API calls, emphasized the need for robust error handling and fallback mechanisms in location-based services.
